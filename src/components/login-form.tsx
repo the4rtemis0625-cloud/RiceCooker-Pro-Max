@@ -6,16 +6,60 @@ import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getFirebase } from "@/firebase";
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
+  AuthError
+} from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
 
 export function LoginForm() {
   const router = useRouter();
+  const { toast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleAuthAction = () => {
-    // In a real app, you would perform authentication here.
-    // For this mock, we'll just set a flag in sessionStorage.
-    sessionStorage.setItem("ricecooker-auth", "true");
-    router.push("/dashboard");
+  const handleAuthAction = async () => {
+    const { auth } = getFirebase();
+
+    if (isSignUp) {
+      if (password !== confirmPassword) {
+        toast({
+          variant: "destructive",
+          title: "Passwords do not match",
+          description: "Please make sure your passwords match.",
+        });
+        return;
+      }
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        sessionStorage.setItem("ricecooker-auth", "true");
+        router.push("/dashboard");
+      } catch (error) {
+        const authError = error as AuthError;
+        toast({
+          variant: "destructive",
+          title: "Uh oh! Something went wrong.",
+          description: authError.message || "Could not create account.",
+        });
+      }
+    } else {
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        sessionStorage.setItem("ricecooker-auth", "true");
+        router.push("/dashboard");
+      } catch (error) {
+        const authError = error as AuthError;
+        toast({
+          variant: "destructive",
+          title: "Uh oh! Something went wrong.",
+          description: authError.message || "Could not log in.",
+        });
+      }
+    }
   };
 
   const toggleFormMode = () => {
@@ -25,13 +69,14 @@ export function LoginForm() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="username" className="text-muted-foreground">Username</Label>
+        <Label htmlFor="email" className="text-muted-foreground">Email</Label>
         <Input 
-            id="username" 
-            type="text" 
-            placeholder="[ USERNAME ]" 
+            id="email" 
+            type="email" 
+            placeholder="[ EMAIL ]" 
             className="font-mono tracking-widest text-center"
-            defaultValue="user" // for demo purposes
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
         />
       </div>
       <div className="space-y-2">
@@ -41,7 +86,8 @@ export function LoginForm() {
             type="password" 
             placeholder="[ ACCESS KEY ]" 
             className="font-mono tracking-widest text-center"
-            defaultValue="password123" // for demo purposes
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
         />
       </div>
       {isSignUp && (
@@ -52,6 +98,8 @@ export function LoginForm() {
               type="password" 
               placeholder="[ CONFIRM KEY ]" 
               className="font-mono tracking-widest text-center"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
           />
         </div>
       )}

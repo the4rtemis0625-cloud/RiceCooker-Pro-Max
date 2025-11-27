@@ -2,22 +2,34 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getFirebase } from "@/firebase";
+import { onAuthStateChanged, User } from "firebase/auth";
 import { ControlPanel } from "@/components/control-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const authStatus = sessionStorage.getItem("ricecooker-auth") === "true";
-    setIsAuthenticated(authStatus);
-    if (!authStatus) {
-      router.push("/login");
-    }
+    const { auth } = getFirebase();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser(user);
+        sessionStorage.setItem("ricecooker-auth", "true");
+      } else {
+        setUser(null);
+        sessionStorage.removeItem("ricecooker-auth");
+        router.push("/login");
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [router]);
 
-  if (isAuthenticated === null) {
+  if (loading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 space-y-4">
         <div className="w-full max-w-2xl space-y-8">
@@ -29,7 +41,7 @@ export default function DashboardPage() {
     );
   }
   
-  if(isAuthenticated) {
+  if(user) {
     return <ControlPanel />;
   }
 
