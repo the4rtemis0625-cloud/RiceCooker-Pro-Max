@@ -13,7 +13,7 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold tracking-wider text-primary">RiceCooker Pro Max 5TB</CardTitle>
           <CardDescription className="font-mono text-muted-foreground pt-2">
-            Device ID: RCPM5TB-42
+            
           </CardDescription>
         </CardHeader>
         <CardContent>
