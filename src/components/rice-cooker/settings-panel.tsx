@@ -109,7 +109,7 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
 
 
   return (
-    <Card className="border-primary/20">
+    <Card className={cn("border-primary/20", isDisabled && "opacity-50")}>
       <CardHeader>
         <CardTitle className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
           Operation Parameters

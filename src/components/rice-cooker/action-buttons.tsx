@@ -7,14 +7,15 @@ type ActionButtonsProps = {
   onStart: () => void;
   onCancel: () => void;
   isRunning: boolean;
+  isDisabled: boolean;
 };
 
-export function ActionButtons({ onStart, onCancel, isRunning }: ActionButtonsProps) {
+export function ActionButtons({ onStart, onCancel, isRunning, isDisabled }: ActionButtonsProps) {
   return (
-    <div className="flex flex-col sm:flex-row gap-4">
+    <div className="flex flex-col sm:flex-row gap-4 mt-8">
       <Button
         onClick={onStart}
-        disabled={isRunning}
+        disabled={isRunning || isDisabled}
         size="lg"
         className="w-full text-lg font-bold tracking-wider"
       >
@@ -23,7 +24,7 @@ export function ActionButtons({ onStart, onCancel, isRunning }: ActionButtonsPro
       </Button>
       <Button
         onClick={onCancel}
-        disabled={!isRunning}
+        disabled={!isRunning || isDisabled}
         size="lg"
         className="w-full text-lg font-bold tracking-wider"
         variant="destructive"

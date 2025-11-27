@@ -4,17 +4,21 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ActionButtons } from "./rice-cooker/action-buttons";
 import { SettingsPanel } from "./rice-cooker/settings-panel";
 import { StatusDisplay } from "./rice-cooker/status-display";
+import { DeviceConnection } from "./rice-cooker/device-connection";
 
-export type Status = "READY" | "DISPENSING" | "WASHING" | "COOKING" | "DONE" | "CANCELED";
+export type Status = "READY" | "DISPENSING" | "WASHING" | "COOKING" | "DONE" | "CANCELED" | "NOT_CONNECTED";
 
 export function ControlPanel() {
-  const [status, setStatus] = useState<Status>("READY");
+  const [status, setStatus] = useState<Status>("NOT_CONNECTED");
   const [dispenseDuration, setDispenseDuration] = useState(5);
   const [washDuration, setWashDuration] = useState(15);
   const [cookDuration, setCookDuration] = useState(30);
 
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [progress, setProgress] = useState(0);
+  
+  const [deviceId, setDeviceId] = useState("");
+  const [isConnected, setIsConnected] = useState(false);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -25,6 +29,20 @@ export function ControlPanel() {
     }
   }, []);
 
+  const handleConnect = () => {
+    if(deviceId) {
+      setIsConnected(true);
+      setStatus("READY");
+    }
+  };
+
+  const handleDisconnect = () => {
+    handleCancel(); // Also cancel any running operation
+    setIsConnected(false);
+    setDeviceId("");
+    setStatus("NOT_CONNECTED");
+  };
+
   const handleStart = () => {
     if (status === "READY" || status === "DONE" || status === "CANCELED") {
       setStatus("DISPENSING");
@@ -33,10 +51,17 @@ export function ControlPanel() {
 
   const handleCancel = () => {
     clearCurrentInterval();
-    setStatus("CANCELED");
+    if(isConnected) {
+      setStatus("CANCELED");
+    }
   };
 
   useEffect(() => {
+    if (!isConnected) {
+      setStatus("NOT_CONNECTED");
+      return;
+    }
+
     if (status === "DONE" || status === "CANCELED") {
       const timeout = setTimeout(() => {
         setStatus("READY");
@@ -91,20 +116,34 @@ export function ControlPanel() {
     }
 
     return () => clearCurrentInterval();
-  }, [status, dispenseDuration, washDuration, cookDuration, clearCurrentInterval]);
+  }, [status, dispenseDuration, washDuration, cookDuration, clearCurrentInterval, isConnected]);
 
-  const isRunning = status !== "READY" && status !== "DONE" && status !== "CANCELED";
+  const isRunning = status === "DISPENSING" || status === "WASHING" || status === "COOKING";
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 space-y-4">
       <div className="w-full max-w-2xl space-y-8">
-        <StatusDisplay status={status} timeRemaining={timeRemaining} progress={progress} />
-        <SettingsPanel 
-          durations={{ dispenseDuration, washDuration, cookDuration }}
-          setDurations={{ setDispenseDuration, setWashDuration, setCookDuration }}
-          isDisabled={isRunning}
+        <DeviceConnection 
+            deviceId={deviceId}
+            setDeviceId={setDeviceId}
+            isConnected={isConnected}
+            onConnect={handleConnect}
+            onDisconnect={handleDisconnect}
         />
-        <ActionButtons onStart={handleStart} onCancel={handleCancel} isRunning={isRunning} />
+        <StatusDisplay 
+            status={status} 
+            timeRemaining={timeRemaining} 
+            progress={progress}
+            deviceId={deviceId}
+        />
+        <div className={cn(!isConnected && "opacity-50 pointer-events-none")}>
+            <SettingsPanel 
+              durations={{ dispenseDuration, washDuration, cookDuration }}
+              setDurations={{ setDispenseDuration, setWashDuration, setCookDuration }}
+              isDisabled={isRunning || !isConnected}
+            />
+            <ActionButtons onStart={handleStart} onCancel={handleCancel} isRunning={isRunning} isDisabled={!isConnected} />
+        </div>
       </div>
     </main>
   );
