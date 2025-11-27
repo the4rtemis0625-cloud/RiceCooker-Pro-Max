@@ -9,10 +9,10 @@ import { FirebaseOptions, initializeApp } from 'firebase/app';
  * Firebase CLI when the project is initialized.
  */
 const firebaseConfig: FirebaseOptions = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
+  apiKey: "AIzaSyCN6TywBh86nQ_OtNf3mZtAyFoLHX0Vvjg",
+  authDomain: "locate-ai-a5391.firebaseapp.com",
   projectId: "locate-ai-a5391",
-  storageBucket: "YOUR_STORAGE_BUCKET",
+  storageBucket: "locate-ai-a5391.appspot.com",
   messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
   appId: "YOUR_APP_ID",
 };
