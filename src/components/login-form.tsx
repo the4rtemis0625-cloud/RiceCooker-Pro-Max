@@ -43,7 +43,7 @@ export function LoginForm() {
         className="w-full font-bold tracking-wider text-lg"
       >
         <LogIn className="mr-2 h-5 w-5" />
-        INITIATE CONNECTION
+        Log in
       </Button>
     </div>
   );
