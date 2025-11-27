@@ -83,8 +83,7 @@ export function LoginForm() {
         <Label htmlFor="password" className="text-muted-foreground">Password</Label>
         <Input 
             id="password" 
-            type="password" 
-            placeholder="[ ACCESS KEY ]" 
+            type="password"
             className="font-mono tracking-widest text-center"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -95,8 +94,7 @@ export function LoginForm() {
           <Label htmlFor="confirm-password" className="text-muted-foreground">Confirm Password</Label>
           <Input 
               id="confirm-password" 
-              type="password" 
-              placeholder="[ CONFIRM KEY ]" 
+              type="password"
               className="font-mono tracking-widest text-center"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
