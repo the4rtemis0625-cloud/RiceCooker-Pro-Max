@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-[url('/rice-pattern.svg')] bg-repeat">
       
       <Card className={cn(
           "w-full max-w-md z-10",
