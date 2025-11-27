@@ -25,7 +25,7 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
   const { setDispenseDuration, setWashDuration, setCookDuration } = setDurations;
   
   return (
-    <Card className="border-primary/20 shadow-none">
+    <Card className="border-primary/20">
       <CardHeader>
         <CardTitle className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
           Operation Parameters

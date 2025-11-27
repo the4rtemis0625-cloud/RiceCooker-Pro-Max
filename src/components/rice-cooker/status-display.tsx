@@ -30,8 +30,8 @@ export function StatusDisplay({ status, timeRemaining, progress }: StatusDisplay
 
   return (
     <Card className={cn(
-        "text-center border-primary/20 shadow-none",
-        isRunning && "border-accent/30 shadow-[0_0_20px_theme(colors.accent/10%)]"
+        "text-center border-primary/20",
+        isRunning && "border-accent/30 shadow-lg"
       )}>
       <CardHeader>
         <CardTitle className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
@@ -41,7 +41,7 @@ export function StatusDisplay({ status, timeRemaining, progress }: StatusDisplay
       <CardContent className="space-y-6">
         <div className="flex items-center justify-center gap-4">
           <Icon className={cn("h-8 w-8", color, isRunning && "animate-spin")} />
-          <h2 className="text-3xl font-bold font-mono tracking-wider">
+          <h2 className="text-3xl font-bold font-mono tracking-wider text-foreground">
             {text}
             <span className="blinking-cursor ml-1">_</span>
           </h2>

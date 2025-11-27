@@ -31,7 +31,6 @@ export function LoginForm() {
       <Button
         onClick={handleLogin}
         className="w-full font-bold tracking-wider text-lg"
-        variant="outline"
       >
         <LogIn className="mr-2 h-5 w-5" />
         INITIATE CONNECTION
