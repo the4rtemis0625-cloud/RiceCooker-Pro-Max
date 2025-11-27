@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,12 +9,17 @@ import { Label } from "@/components/ui/label";
 
 export function LoginForm() {
   const router = useRouter();
+  const [isSignUp, setIsSignUp] = useState(false);
 
-  const handleLogin = () => {
+  const handleAuthAction = () => {
     // In a real app, you would perform authentication here.
     // For this mock, we'll just set a flag in sessionStorage.
     sessionStorage.setItem("ricecooker-auth", "true");
     router.push("/dashboard");
+  };
+
+  const toggleFormMode = () => {
+    setIsSignUp(!isSignUp);
   };
 
   return (
@@ -38,13 +44,30 @@ export function LoginForm() {
             defaultValue="password123" // for demo purposes
         />
       </div>
+      {isSignUp && (
+        <div className="space-y-2">
+          <Label htmlFor="confirm-password" className="text-muted-foreground">Confirm Password</Label>
+          <Input 
+              id="confirm-password" 
+              type="password" 
+              placeholder="[ CONFIRM KEY ]" 
+              className="font-mono tracking-widest text-center"
+          />
+        </div>
+      )}
       <Button
-        onClick={handleLogin}
+        onClick={handleAuthAction}
         className="w-full font-bold tracking-wider text-lg"
       >
         <LogIn className="mr-2 h-5 w-5" />
-        Log in
+        {isSignUp ? "Create Account" : "Log in"}
       </Button>
+      <p className="text-center text-sm text-muted-foreground">
+        {isSignUp ? "Already have an account?" : "Don't have an account?"}
+        <Button variant="link" onClick={toggleFormMode} className="font-bold">
+          {isSignUp ? "Log in" : "Create one"}
+        </Button>
+      </p>
     </div>
   );
 }
