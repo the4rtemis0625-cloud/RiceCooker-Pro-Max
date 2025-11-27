@@ -57,9 +57,9 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
         <div className="space-y-4">
           <Label className="text-sm text-muted-foreground">Presets</Label>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => handlePreset('small')} disabled={isDisabled}>Small</Button>
-            <Button variant="outline" size="sm" onClick={() => handlePreset('medium')} disabled={isDisabled}>Medium</Button>
-            <Button variant="outline" size="sm" onClick={() => handlePreset('large')} disabled={isDisabled}>Large</Button>
+            <Button variant="outline" size="sm" onClick={() => handlePreset('small')} disabled={isDisabled}>1 Person</Button>
+            <Button variant="outline" size="sm" onClick={() => handlePreset('medium')} disabled={isDisabled}>2 People</Button>
+            <Button variant="outline" size="sm" onClick={() => handlePreset('large')} disabled={isDisabled}>4 People</Button>
           </div>
         </div>
 
