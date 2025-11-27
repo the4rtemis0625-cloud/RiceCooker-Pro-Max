@@ -1,7 +1,7 @@
 "use client";
 
 import type { Status } from "../control-panel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { CheckCircle, Loader, XCircle, Thermometer, Wheat, Droplets, Utensils } from "lucide-react";
@@ -37,6 +37,9 @@ export function StatusDisplay({ status, timeRemaining, progress }: StatusDisplay
         <CardTitle className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
           Current Status
         </CardTitle>
+        <CardDescription className="font-mono text-xs text-muted-foreground/50 pt-1">
+            Device ID: RCPM5TB-42
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex items-center justify-center gap-4">
