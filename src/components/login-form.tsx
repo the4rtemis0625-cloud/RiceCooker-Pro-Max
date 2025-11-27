@@ -73,7 +73,6 @@ export function LoginForm() {
         <Input 
             id="email" 
             type="email" 
-            placeholder="[ EMAIL ]" 
             className="font-mono tracking-widest text-center"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
