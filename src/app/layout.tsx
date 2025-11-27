@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'RiceCooker Pro Max 5TB',
+  title: 'Ultimate Rice Cooker Pro Max',
   description: 'The future of rice cooking is here.',
 };
 

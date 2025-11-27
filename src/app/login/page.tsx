@@ -11,7 +11,7 @@ export default function LoginPage() {
           "border-primary/20 shadow-lg"
         )}>
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold tracking-wider text-primary">RiceCooker Pro Max 5TB</CardTitle>
+          <CardTitle className="text-3xl font-bold tracking-wider text-primary">Ultimate Rice Cooker Pro Max</CardTitle>
           <CardDescription className="font-mono text-muted-foreground pt-2">
             
           </CardDescription>
