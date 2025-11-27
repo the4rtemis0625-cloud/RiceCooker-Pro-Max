@@ -5,6 +5,7 @@ import { ActionButtons } from "./rice-cooker/action-buttons";
 import { SettingsPanel } from "./rice-cooker/settings-panel";
 import { StatusDisplay } from "./rice-cooker/status-display";
 import { DeviceConnection } from "./rice-cooker/device-connection";
+import { cn } from "@/lib/utils";
 
 export type Status = "READY" | "DISPENSING" | "WASHING" | "COOKING" | "DONE" | "CANCELED" | "NOT_CONNECTED";
 
