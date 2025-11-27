@@ -19,6 +19,16 @@ export function LoginForm() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
+        <Label htmlFor="username" className="text-muted-foreground">Username</Label>
+        <Input 
+            id="username" 
+            type="text" 
+            placeholder="[ USERNAME ]" 
+            className="font-mono tracking-widest text-center"
+            defaultValue="user" // for demo purposes
+        />
+      </div>
+      <div className="space-y-2">
         <Label htmlFor="password" className="text-muted-foreground">Password</Label>
         <Input 
             id="password" 
