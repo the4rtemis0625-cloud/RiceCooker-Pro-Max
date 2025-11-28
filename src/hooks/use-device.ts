@@ -52,7 +52,6 @@ export function useDevice(deviceId: string | null) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // This state holds the slider values while the user is interacting with them.
   const [localSettings, setLocalSettings] = useState<DeviceSettings>(defaultSettings);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -65,8 +64,6 @@ export function useDevice(deviceId: string | null) {
     }
   }, []);
 
-  // When the device data from the DB changes (e.g., loaded for the first time,
-  // or updated externally), sync it to our local settings state.
   useEffect(() => {
     if (device?.settings) {
       setLocalSettings(device.settings);
@@ -145,7 +142,6 @@ export function useDevice(deviceId: string | null) {
     };
   }, [deviceId, database, clearCurrentInterval]);
 
-  // Effect to handle timers and progress updates for the UI
   useEffect(() => {
     clearCurrentInterval();
 
@@ -159,13 +155,11 @@ export function useDevice(deviceId: string | null) {
       const { startTime, duration } = device.currentStage;
       
       intervalRef.current = setInterval(() => {
-        // We calculate progress based on server time vs local time to avoid sync issues.
         const now = Date.now();
         const elapsed = (now - startTime) / 1000;
         const remaining = Math.max(0, duration - elapsed);
         const progress = Math.min(100, (elapsed / duration) * 100);
 
-        // We only update the local `device` state for the UI, no DB writes here.
         setDevice(
           (prev) =>
             prev
@@ -176,15 +170,13 @@ export function useDevice(deviceId: string | null) {
         if (remaining <= 0) {
           clearCurrentInterval();
         }
-      }, 500); // Update UI every half a second
+      }, 500); 
     }
 
-    // Cleanup interval on unmount or when dependencies change
     return () => clearCurrentInterval();
   }, [device?.status, device?.currentStage, clearCurrentInterval]);
 
 
-  // Centralized function for writing updates to the RTDB
   const updateDeviceInRtdb = (data: Partial<Omit<DeviceState, 'settings'>>) => {
     if (!deviceId || !database) return;
     const dbRef = ref(database, `devices/${deviceId}`);
@@ -195,21 +187,14 @@ export function useDevice(deviceId: string | null) {
     });
   };
 
-  /**
-   * Updates the local state for settings and then debounces the write to Firebase.
-   * This is called by the sliders in the SettingsPanel.
-   */
   const setDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
-    // 1. Immediately update the local state for a responsive UI
     const updatedSettings = { ...localSettings, ...newSettings };
     setLocalSettings(updatedSettings);
 
-    // 2. Clear any existing debounce timeout
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
 
-    // 3. Set a new timeout to write to the database
     debounceTimeoutRef.current = setTimeout(() => {
       if (!deviceId || !database) return;
       const dbRef = ref(database, `devices/${deviceId}/settings`);
@@ -217,7 +202,7 @@ export function useDevice(deviceId: string | null) {
         console.error("Failed to update settings in RTDB:", err);
         setError(err.message || "Failed to save settings.");
       });
-    }, 300); // 300ms debounce delay
+    }, 300);
   }, [localSettings, deviceId, database]);
 
 
@@ -246,7 +231,7 @@ export function useDevice(deviceId: string | null) {
         device.status === "WASHING" ||
         device.status === "COOKING")
     ) {
-      updateDeviceInRtdb({ status: "CANCELED", currentStage: null });
+      updateDeviceInRtdb({ status: "READY", currentStage: null });
     }
   };
 
