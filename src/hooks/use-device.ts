@@ -140,13 +140,12 @@ export function useDevice(deviceId: string | null) {
 
         } else {
           const defaultState: Partial<DeviceState> & { settings: DeviceSettings } = {
-            status: "READY",
             settings: defaultSettings,
             lastUpdated: serverTimestamp() as any,
             currentAction: "idle",
           };
           set(dbRef, defaultState)
-            .then(() => setDevice({ ...defaultState, lastUpdated: Date.now() } as DeviceState))
+            .then(() => setDevice({ ...defaultState, lastUpdated: Date.now(), status: "READY" } as DeviceState))
             .catch((err) => {
                 console.error("Failed to create device state in RTDB:", err);
                 setError(err.message || "Could not initialize device state.");
@@ -179,7 +178,7 @@ export function useDevice(deviceId: string | null) {
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [deviceId, database, clearCurrentInterval]);
+  }, [deviceId, database, clearCurrentInterval, device?.settings]);
 
   useEffect(() => {
     clearCurrentInterval();
