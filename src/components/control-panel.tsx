@@ -6,7 +6,7 @@ import { SettingsPanel } from "./rice-cooker/settings-panel";
 import { StatusDisplay } from "./rice-cooker/status-display";
 import { DeviceConnection } from "./rice-cooker/device-connection";
 import { cn } from "@/lib/utils";
-import { useDevice, type DeviceState } from "@/hooks/use-device";
+import { useDevice, type DeviceState, type DeviceSettings } from "@/hooks/use-device";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useDatabase } from "@/firebase";
@@ -22,7 +22,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const database = useDatabase();
   const auth = useAuth();
 
-  const { device, loading, error, setDurations, startDevice, cancelDevice } = useDevice(deviceId);
+  const { device, loading, error, setDurations, startDevice, cancelDevice, localSettings } = useDevice(deviceId);
 
   const updateDeviceIdInUserProfile = (newDeviceId: string | null) => {
     const user = auth?.currentUser;
@@ -96,15 +96,9 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
 
         <div className={cn(!isConnected && "opacity-50 pointer-events-none")}>
             <SettingsPanel
-            durations={
-                currentDevice.settings ?? {
-                dispenseDuration: 5,
-                washDuration: 15,
-                cookDuration: 30,
-                }
-            }
-            setDurations={setDurations}
-            isDisabled={isRunning || !isConnected}
+              durations={localSettings}
+              setDurations={setDurations}
+              isDisabled={isRunning || !isConnected}
             />
             <ActionButtons
             onStart={startDevice}

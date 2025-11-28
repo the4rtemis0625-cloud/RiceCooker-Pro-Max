@@ -51,7 +51,6 @@ export function useDevice(deviceId: string | null) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Local state for settings to avoid re-render loops with sliders
   const [localSettings, setLocalSettings] = useState<DeviceSettings>(defaultSettings);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -141,7 +140,7 @@ export function useDevice(deviceId: string | null) {
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [deviceId, database, clearCurrentInterval, device?.settings]);
+  }, [deviceId, database, clearCurrentInterval]);
 
   // Effect to handle timers and progress updates
   useEffect(() => {
@@ -189,24 +188,22 @@ export function useDevice(deviceId: string | null) {
   };
 
   const setDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
-    if (device) {
-      const updatedSettings = { ...localSettings, ...newSettings };
-      setLocalSettings(updatedSettings);
+    const updatedSettings = { ...localSettings, ...newSettings };
+    setLocalSettings(updatedSettings);
 
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-
-      debounceTimeoutRef.current = setTimeout(() => {
-        if (!deviceId || !database) return;
-        const dbRef = ref(database, `devices/${deviceId}`);
-        update(dbRef, { settings: updatedSettings, lastUpdated: serverTimestamp() }).catch((err) => {
-          console.error("Failed to update settings in RTDB:", err);
-          setError(err.message || "Failed to save settings.");
-        });
-      }, 300); // 300ms debounce
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
     }
-  }, [device, localSettings, deviceId, database]);
+
+    debounceTimeoutRef.current = setTimeout(() => {
+      if (!deviceId || !database) return;
+      const dbRef = ref(database, `devices/${deviceId}`);
+      update(dbRef, { settings: updatedSettings, lastUpdated: serverTimestamp() }).catch((err) => {
+        console.error("Failed to update settings in RTDB:", err);
+        setError(err.message || "Failed to save settings.");
+      });
+    }, 300); // 300ms debounce
+  }, [localSettings, deviceId, database]);
 
 
   const startDevice = () => {
@@ -238,13 +235,9 @@ export function useDevice(deviceId: string | null) {
     }
   };
 
-  const deviceStateForUI = device ? {
-      ...device,
-      settings: localSettings
-  } : null;
-
   return {
-    device: deviceStateForUI,
+    device,
+    localSettings,
     loading,
     error,
     setDurations,
