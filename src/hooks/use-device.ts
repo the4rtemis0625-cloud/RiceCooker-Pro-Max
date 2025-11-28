@@ -11,7 +11,6 @@ import {
   update,
   serverTimestamp,
 } from "firebase/database";
-import { useToast } from "./use-toast";
 
 export type Status =
   | "READY"
@@ -32,7 +31,7 @@ export interface DeviceState {
   status: Status;
   settings: DeviceSettings;
   lastUpdated: number;
-  queue?: string[]; // Field for sending commands
+  queue?: string[];
   command?: 'start' | 'cook' | 'cancel' | null;
   currentAction?: 'idle' | 'dispense rice' | 'add water' | 'cook' | 'done' | 'canceled' | null;
   currentStage?: {
@@ -52,7 +51,6 @@ const defaultSettings: DeviceSettings = {
 
 export function useDevice(deviceId: string | null) {
   const database = useDatabase();
-  const { toast } = useToast();
   const [device, setDevice] = useState<DeviceState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +58,6 @@ export function useDevice(deviceId: string | null) {
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Function to send a command object to the RTDB
   const sendCommandObject = useCallback((commandData: object) => {
     if (!deviceId || !database) return;
     const deviceRef = ref(database, `devices/${deviceId}`);
@@ -78,7 +75,6 @@ export function useDevice(deviceId: string | null) {
     }
   }, []);
 
-  // Effect to listen for device state changes from RTDB
   useEffect(() => {
     if (!database) {
       setLoading(false);
@@ -105,7 +101,7 @@ export function useDevice(deviceId: string | null) {
       dbRef,
       (snapshot) => {
         if (snapshot.exists()) {
-          const data = snapshot.val() as DeviceState;
+          const data = snapshot.val() as Partial<DeviceState>;
           
           const saneSettings: DeviceSettings = {
             pumpTime: typeof data.settings?.pumpTime === 'number' ? data.settings.pumpTime : defaultSettings.pumpTime,
@@ -114,9 +110,9 @@ export function useDevice(deviceId: string | null) {
           };
           
           let newStatus: Status;
+          const currentAction = data.currentAction || 'idle';
 
-          // Map currentAction to status
-          switch (data.currentAction) {
+          switch (currentAction) {
             case 'idle':
               newStatus = 'READY';
               break;
@@ -136,12 +132,11 @@ export function useDevice(deviceId: string | null) {
               newStatus = 'CANCELED';
               break;
             default:
-              // Fallback for other potential values or if currentAction is null/undefined
               newStatus = 'READY';
               break;
           }
           
-          setDevice({ ...data, status: newStatus, settings: saneSettings });
+          setDevice({ ...data, status: newStatus, settings: saneSettings, currentAction } as DeviceState);
 
         } else {
           const defaultState: Partial<DeviceState> & { settings: DeviceSettings } = {
@@ -241,22 +236,20 @@ export function useDevice(deviceId: string | null) {
   const startDevice = () => {
     const currentAction = device?.currentAction;
     if (currentAction !== 'dispense rice' && currentAction !== 'add water' && currentAction !== 'cook') {
-      const command = {
+      sendCommandObject({
         command: "start",
         queue: ["add water", "dispense rice"]
-      };
-      sendCommandObject(command);
+      });
     }
   };
 
   const cookDevice = () => {
     const currentAction = device?.currentAction;
     if (currentAction !== 'dispense rice' && currentAction !== 'add water' && currentAction !== 'cook') {
-      const command = {
+      sendCommandObject({
         command: "cook",
         queue: ["cook"]
-      };
-      sendCommandObject(command);
+      });
     }
   };
 
@@ -267,11 +260,10 @@ export function useDevice(deviceId: string | null) {
       currentAction === "add water" ||
       currentAction === "cook"
     ) {
-      const command = {
+      sendCommandObject({
         command: "cancel",
         queue: []
-      };
-      sendCommandObject(command);
+      });
     }
   };
 
@@ -285,5 +277,3 @@ export function useDevice(deviceId: string | null) {
     cancelDevice,
   };
 }
-
-    
