@@ -217,9 +217,9 @@ export function useDevice(deviceId: string | null) {
     if (isRunning && currentStage?.startTime && currentStage?.duration) {
       const { startTime, duration } = currentStage;
       
-      intervalRef.current = setInterval(() => {
+      const updateTimer = () => {
         const now = Date.now();
-        const elapsed = (now - startTime) / 1000;
+        const elapsed = (now - startTime) / 1000; // startTime is a millis timestamp from RTDB
         const remaining = Math.max(0, duration - elapsed);
         const newProgress = Math.min(100, (elapsed / duration) * 100);
 
@@ -229,7 +229,11 @@ export function useDevice(deviceId: string | null) {
         if (remaining <= 0) {
             clearCurrentInterval();
         }
-      }, 500); 
+      };
+
+      updateTimer(); // Run immediately to avoid 1-second delay
+      intervalRef.current = setInterval(updateTimer, 500); 
+
     } else {
         setTimeRemaining(0);
         setProgress(0);
