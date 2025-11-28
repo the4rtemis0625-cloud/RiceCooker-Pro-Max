@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { useDevice, type DeviceState } from "@/hooks/use-device";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
@@ -17,19 +17,20 @@ import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/e
 
 interface ControlPanelProps {
     initialDeviceId: string | null;
-    userId: string;
 }
 
-export function ControlPanel({ initialDeviceId, userId }: ControlPanelProps) {
+export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const [deviceId, setDeviceId] = useState(initialDeviceId);
   const { toast } = useToast();
   const firestore = useFirestore();
+  const auth = useAuth();
 
   const { device, loading, error, setDurations, startDevice, cancelDevice } = useDevice(deviceId);
 
   const updateDeviceIdInUserProfile = (newDeviceId: string | null) => {
-    if (!userId || !firestore) return;
-    const userRef = doc(firestore, "users", userId);
+    const user = auth?.currentUser;
+    if (!user || !firestore) return;
+    const userRef = doc(firestore, "users", user.uid);
     
     const payload = { deviceId: newDeviceId };
 
@@ -93,7 +94,6 @@ export function ControlPanel({ initialDeviceId, userId }: ControlPanelProps) {
             deviceId={deviceId}
             onSave={handleSaveDeviceId}
             onDisconnect={handleDisconnect}
-            userId={userId}
         />
         
         <StatusDisplay

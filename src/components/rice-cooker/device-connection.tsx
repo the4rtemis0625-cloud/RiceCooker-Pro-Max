@@ -12,7 +12,6 @@ type DeviceConnectionProps = {
     deviceId: string | null;
     onSave: (id: string) => void;
     onDisconnect: () => void;
-    userId: string;
 };
 
 export function DeviceConnection({ deviceId, onSave, onDisconnect }: DeviceConnectionProps) {
