@@ -179,23 +179,6 @@ export function useDevice(deviceId: string | null) {
       });
   };
 
-  const updateDeviceIdInUserProfile = (userId: string, newDeviceId: string | null) => {
-    if (!userId || !firestore) return;
-    const userRef = doc(firestore, "users", userId);
-    
-    const payload = { deviceId: newDeviceId };
-
-    updateDoc(userRef, payload)
-        .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: userRef.path,
-                operation: 'update',
-                requestResourceData: payload,
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
-        });
-  };
-
   const setDurations = (settings: Partial<DeviceSettings>) => {
     if(device){
         const newSettings = { ...device.settings, ...settings };
@@ -222,5 +205,5 @@ export function useDevice(deviceId: string | null) {
     }
   };
 
-  return { device, loading, error, setDurations, startDevice, cancelDevice, updateDeviceId: updateDeviceIdInUserProfile };
+  return { device, loading, error, setDurations, startDevice, cancelDevice };
 }

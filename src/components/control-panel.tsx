@@ -9,6 +9,11 @@ import { cn } from "@/lib/utils";
 import { useDevice, type DeviceState } from "@/hooks/use-device";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useFirestore } from "@/firebase";
+import { doc, updateDoc } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
+
 
 interface ControlPanelProps {
     initialDeviceId: string | null;
@@ -18,14 +23,34 @@ interface ControlPanelProps {
 export function ControlPanel({ initialDeviceId, userId }: ControlPanelProps) {
   const [deviceId, setDeviceId] = useState(initialDeviceId);
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  const { device, loading, error, setDurations, startDevice, cancelDevice, updateDeviceId } =
-    useDevice(deviceId);
+  const { device, loading, error, setDurations, startDevice, cancelDevice } = useDevice(deviceId);
 
-  // When the user saves a new device ID, update it in the state and the hook
+  const updateDeviceIdInUserProfile = (newDeviceId: string | null) => {
+    if (!userId || !firestore) return;
+    const userRef = doc(firestore, "users", userId);
+    
+    const payload = { deviceId: newDeviceId };
+
+    updateDoc(userRef, payload)
+        .then(() => {
+            setDeviceId(newDeviceId);
+        })
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: userRef.path,
+                operation: 'update',
+                requestResourceData: payload,
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+        });
+  };
+
+
+  // When the user saves a new device ID, update it in the user profile first
   const handleSaveDeviceId = (newDeviceId: string) => {
-    updateDeviceId(userId, newDeviceId);
-    setDeviceId(newDeviceId);
+    updateDeviceIdInUserProfile(newDeviceId);
   };
 
   const handleDisconnect = () => {
@@ -33,8 +58,7 @@ export function ControlPanel({ initialDeviceId, userId }: ControlPanelProps) {
         cancelDevice();
     }
     // This allows changing the device by clearing the association in the user's profile.
-    updateDeviceId(userId, null);
-    setDeviceId(null);
+    updateDeviceIdInUserProfile(null);
   };
   
   useEffect(() => {
