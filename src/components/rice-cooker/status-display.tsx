@@ -5,11 +5,12 @@ import type { DeviceState } from "@/hooks/use-device";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { CheckCircle, Loader, XCircle, Thermometer, Wheat, Droplets, Utensils, WifiOff, PlugZap } from "lucide-react";
+import { CheckCircle, Loader, XCircle, Thermometer, Wheat, Droplets, Utensils, WifiOff, PlugZap, Hourglass } from "lucide-react";
 import { Timestamp } from "firebase/firestore";
 
 const statusConfig = {
   READY: { text: "SYSTEM READY", icon: CheckCircle, color: "text-primary" },
+  SENDING_COMMAND: { text: "SENDING...", icon: Hourglass, color: "text-accent-foreground" },
   DISPENSING: { text: "DISPENSING RICE", icon: Wheat, color: "text-accent-foreground" },
   WASHING: { text: "ADDING WATER", icon: Droplets, color: "text-accent-foreground" },
   COOKING: { text: "COOKING", icon: Thermometer, color: "text-accent-foreground" },
@@ -33,12 +34,13 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
   const seconds = timeRemaining % 60;
 
   const isRunning = safeStatus === "DISPENSING" || safeStatus === "WASHING" || safeStatus === "COOKING";
+  const isConnecting = safeStatus === "SENDING_COMMAND";
   const isConnected = safeStatus !== 'NOT_CONNECTED';
 
   return (
     <Card className={cn(
         "text-center border-primary/20",
-        isRunning && "bg-accent border-accent shadow-lg",
+        (isRunning || isConnecting) && "bg-accent border-accent shadow-lg",
         !isConnected && "bg-muted/50"
       )}>
       <CardHeader>
@@ -51,8 +53,8 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex items-center justify-center gap-4">
-          <Icon className={cn("h-8 w-8", color, isRunning && "animate-spin")} />
-          <h2 className={cn("text-3xl font-bold font-mono tracking-wider", isRunning ? 'text-accent-foreground' : 'text-foreground')}>
+          <Icon className={cn("h-8 w-8", color, (isRunning || isConnecting) && "animate-spin")} />
+          <h2 className={cn("text-3xl font-bold font-mono tracking-wider", (isRunning || isConnecting) ? 'text-accent-foreground' : 'text-foreground')}>
             {text}
             { isConnected && <span className="blinking-cursor ml-1">_</span> }
           </h2>
@@ -72,4 +74,3 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
     </Card>
   );
 }
-

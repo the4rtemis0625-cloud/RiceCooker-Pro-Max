@@ -19,7 +19,8 @@ export type Status =
   | "COOKING"
   | "DONE"
   | "CANCELED"
-  | "NOT_CONNECTED";
+  | "NOT_CONNECTED"
+  | "SENDING_COMMAND";
 
 export interface DeviceSettings {
   pumpTime: number;
@@ -59,6 +60,7 @@ export function useDevice(deviceId: string | null) {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [progress, setProgress] = useState(0);
 
+  const commandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const clearCurrentInterval = useCallback(() => {
@@ -70,7 +72,6 @@ export function useDevice(deviceId: string | null) {
 
   const setDurationsCallback = useCallback((newSettings: Partial<DeviceSettings>) => {
       if (!deviceId || !database) return;
-
       const dbRef = ref(database, `devices/${deviceId}/settings`);
       update(dbRef, newSettings).catch((err) => {
         console.error("Failed to update settings in RTDB:", err);
@@ -104,6 +105,11 @@ export function useDevice(deviceId: string | null) {
     const listener = onValue(
       dbRef,
       (snapshot) => {
+        if (commandTimeoutRef.current) {
+          clearTimeout(commandTimeoutRef.current);
+          commandTimeoutRef.current = null;
+        }
+
         if (snapshot.exists()) {
           const data = snapshot.val() as Partial<DeviceState & { settings: DeviceSettings }>;
           
@@ -142,7 +148,11 @@ export function useDevice(deviceId: string | null) {
               break;
           }
           
-          setDevice({ ...data, status: newStatus, currentAction } as DeviceState);
+          if(device?.status === 'SENDING_COMMAND' && newStatus === 'READY') {
+            // Keep showing sending command until device actually changes state
+          } else {
+            setDevice({ ...data, status: newStatus, currentAction } as DeviceState);
+          }
 
         } else {
           const defaultState = {
@@ -183,8 +193,11 @@ export function useDevice(deviceId: string | null) {
     return () => {
       off(dbRef, "value", listener);
       clearCurrentInterval();
+      if(commandTimeoutRef.current) {
+        clearTimeout(commandTimeoutRef.current);
+      }
     };
-  }, [deviceId, database, clearCurrentInterval]);
+  }, [deviceId, database, clearCurrentInterval, device?.status]);
 
   useEffect(() => {
     clearCurrentInterval();
@@ -215,13 +228,30 @@ export function useDevice(deviceId: string | null) {
 
     return () => clearCurrentInterval();
   }, [device?.status, device?.currentStage, clearCurrentInterval]);
-
+  
   const sendCommandObject = (commandData: object) => {
     if (!deviceId || !database) return;
+
+    if (device) {
+      const lastStatus = device.status;
+      setDevice({ ...device, status: "SENDING_COMMAND" });
+      
+      commandTimeoutRef.current = setTimeout(() => {
+          setError("Device did not respond to the command.");
+          setDevice({ ...device, status: lastStatus });
+          commandTimeoutRef.current = null;
+      }, 5000);
+    }
+    
     const deviceRef = ref(database, `devices/${deviceId}`);
     update(deviceRef, commandData).catch((err) => {
+      if (commandTimeoutRef.current) {
+          clearTimeout(commandTimeoutRef.current);
+          commandTimeoutRef.current = null;
+      }
       console.error("Failed to send command:", err);
       setError(err.message || "Failed to send command to device.");
+      if (device) setDevice(device);
     });
   };
 
@@ -241,8 +271,8 @@ export function useDevice(deviceId: string | null) {
     const currentAction = device?.currentAction;
     if (currentAction === 'idle' || currentAction === 'done' || currentAction === 'canceled' || !currentAction) {
       sendCommandObject({
-        "command/dispense": false,
         "command/cook": true,
+        "command/dispense": false,
         "command/cancel": false,
         queue: ["cook"]
       });
@@ -257,9 +287,9 @@ export function useDevice(deviceId: string | null) {
       currentAction === "cook"
     ) {
       sendCommandObject({
+        "command/cancel": true,
         "command/dispense": false,
         "command/cook": false,
-        "command/cancel": true,
         queue: []
       });
     }
