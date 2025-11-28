@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { DeviceSettings } from "@/hooks/use-device";
 
 type SettingsPanelProps = {
-  durations: DeviceSettings;
+  durations?: DeviceSettings;
   setDurations: (settings: Partial<DeviceSettings>) => void;
   isDisabled: boolean;
 };
@@ -33,8 +33,13 @@ type CustomPreset = {
   cookTime: number;
 };
 
-export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsPanelProps) {
-  const { pumpTime, dispenseTime, cookTime } = durations;
+const defaultDurations: DeviceSettings = {
+  pumpTime: 5,
+  dispenseTime: 10,
+  cookTime: 30,
+};
+
+export function SettingsPanel({ durations = defaultDurations, setDurations, isDisabled }: SettingsPanelProps) {
   
   const [customPresets, setCustomPresets] = useState<CustomPreset[]>([]);
   const [newPresetName, setNewPresetName] = useState("");
@@ -57,21 +62,23 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
   }
 
   const handlePreset = (preset: 'small' | 'medium' | 'large') => {
+    if (isDisabled) return;
     switch (preset) {
       case 'small':
-        handleSetDurations({ pumpTime: 5, dispenseTime: 3, cookTime: 20 });
+        setDurations({ pumpTime: 5, dispenseTime: 3, cookTime: 20 });
         break;
       case 'medium':
-        handleSetDurations({ pumpTime: 10, dispenseTime: 5, cookTime: 30 });
+        setDurations({ pumpTime: 10, dispenseTime: 5, cookTime: 30 });
         break;
       case 'large':
-        handleSetDurations({ pumpTime: 15, dispenseTime: 8, cookTime: 45 });
+        setDurations({ pumpTime: 15, dispenseTime: 8, cookTime: 45 });
         break;
     }
   };
 
   const handleCustomPreset = (preset: CustomPreset) => {
-    handleSetDurations({
+    if (isDisabled) return;
+    setDurations({
       pumpTime: preset.pumpTime,
       dispenseTime: preset.dispenseTime,
       cookTime: preset.cookTime,
@@ -83,9 +90,9 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
 
     const newPreset: CustomPreset = {
       name: newPresetName,
-      pumpTime: pumpTime,
-      dispenseTime: dispenseTime,
-      cookTime: cookTime,
+      pumpTime: durations.pumpTime,
+      dispenseTime: durations.dispenseTime,
+      cookTime: durations.cookTime,
     };
 
     const updatedPresets = [...customPresets, newPreset];
@@ -155,14 +162,14 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
               <Droplets className="h-5 w-5 text-primary/70" />
               Add Water Time
             </Label>
-            <span className="font-mono text-lg">{pumpTime}s</span>
+            <span className="font-mono text-lg">{durations.pumpTime}s</span>
           </div>
           <Slider
             id="pump-time"
             min={1}
             max={30}
             step={1}
-            value={[pumpTime]}
+            value={[durations.pumpTime]}
             onValueChange={(value) => handleSetDurations({ pumpTime: value[0] })}
             disabled={isDisabled}
           />
@@ -174,14 +181,14 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
               <Wheat className="h-5 w-5 text-primary/70" />
               Dispense Rice Time
             </Label>
-            <span className="font-mono text-lg">{dispenseTime}s</span>
+            <span className="font-mono text-lg">{durations.dispenseTime}s</span>
           </div>
           <Slider
             id="dispense-time"
             min={1}
             max={30}
             step={1}
-            value={[dispenseTime]}
+            value={[durations.dispenseTime]}
             onValueChange={(value) => handleSetDurations({ dispenseTime: value[0] })}
             disabled={isDisabled}
           />
@@ -193,14 +200,14 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
               <CookingPot className="h-5 w-5 text-primary/70" />
               Cook Duration
             </Label>
-            <span className="font-mono text-lg">{cookTime}m</span>
+            <span className="font-mono text-lg">{durations.cookTime}m</span>
           </div>
           <Slider
             id="cook-time"
             min={10}
             max={120}
             step={1}
-            value={[cookTime]}
+            value={[durations.cookTime]}
             onValueChange={(value) => handleSetDurations({ cookTime: value[0] })}
             disabled={isDisabled}
           />

@@ -23,7 +23,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const database = useDatabase();
   const auth = useAuth();
 
-  const { device, loading, error, setDurations, startDevice, cookDevice, cancelDevice, localSettings } = useDevice(deviceId);
+  const { device, loading, error, setDurations, startDevice, cookDevice, cancelDevice } = useDevice(deviceId);
 
   const updateDeviceIdInUserProfile = (newDeviceId: string | null) => {
     const user = auth?.currentUser;
@@ -68,7 +68,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const currentDevice = device ?? { status: 'NOT_CONNECTED' } as Partial<DeviceState>;
   const isRunning = currentDevice.status === "DISPENSING" || currentDevice.status === "WASHING" || currentDevice.status === "COOKING";
   const isConnected = currentDevice.status !== 'NOT_CONNECTED';
-  const isReady = currentDevice.status === 'READY';
+  const isReady = !isRunning && isConnected;
 
 
   if (loading && deviceId) {
@@ -99,7 +99,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
 
         <div className={cn(!isConnected && "opacity-50 pointer-events-none")}>
             <SettingsPanel
-              durations={localSettings}
+              durations={device?.settings}
               setDurations={setDurations}
               isDisabled={isRunning || !isConnected}
             />

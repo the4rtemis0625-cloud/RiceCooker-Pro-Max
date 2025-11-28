@@ -53,7 +53,6 @@ export function useDevice(deviceId: string | null) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const [localSettings, setLocalSettings] = useState<DeviceSettings>(defaultSettings);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -75,16 +74,6 @@ export function useDevice(deviceId: string | null) {
     }
   }, []);
 
-
-  // Effect to sync remote settings to local state
-  useEffect(() => {
-    if (device?.settings && JSON.stringify(device.settings) !== JSON.stringify(localSettings)) {
-      setLocalSettings(device.settings);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [device?.settings]);
-
-
   // Effect to listen for device state changes from RTDB
   useEffect(() => {
     if (!database) {
@@ -98,7 +87,6 @@ export function useDevice(deviceId: string | null) {
         settings: defaultSettings,
         lastUpdated: Date.now(),
       });
-      setLocalSettings(defaultSettings);
       setLoading(false);
       clearCurrentInterval();
       return;
@@ -113,16 +101,16 @@ export function useDevice(deviceId: string | null) {
       (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.val() as DeviceState;
-          setDevice(data);
-          if (data.settings && JSON.stringify(data.settings) !== JSON.stringify(localSettings)) {
-            // Make sure the settings in DB are valid numbers, otherwise use defaults
-            const saneSettings: DeviceSettings = {
-              pumpTime: typeof data.settings.pumpTime === 'number' ? data.settings.pumpTime : defaultSettings.pumpTime,
-              dispenseTime: typeof data.settings.dispenseTime === 'number' ? data.settings.dispenseTime : defaultSettings.dispenseTime,
-              cookTime: typeof data.settings.cookTime === 'number' ? data.settings.cookTime : defaultSettings.cookTime,
-            };
-            setLocalSettings(saneSettings);
-          }
+          
+          // Ensure settings are valid numbers, otherwise merge with defaults
+          const saneSettings: DeviceSettings = {
+            pumpTime: typeof data.settings?.pumpTime === 'number' ? data.settings.pumpTime : defaultSettings.pumpTime,
+            dispenseTime: typeof data.settings?.dispenseTime === 'number' ? data.settings.dispenseTime : defaultSettings.dispenseTime,
+            cookTime: typeof data.settings?.cookTime === 'number' ? data.settings.cookTime : defaultSettings.cookTime,
+          };
+
+          setDevice({ ...data, settings: saneSettings });
+
         } else {
           // If device doesn't exist, create it with default state
           const defaultState: Partial<DeviceState> & { settings: DeviceSettings } = {
@@ -165,7 +153,7 @@ export function useDevice(deviceId: string | null) {
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [deviceId, database, clearCurrentInterval, localSettings]);
+  }, [deviceId, database, clearCurrentInterval]);
 
   // Effect for client-side progress calculation
   useEffect(() => {
@@ -203,8 +191,8 @@ export function useDevice(deviceId: string | null) {
 
 
   const setDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
-    const updatedSettings = { ...localSettings, ...newSettings };
-    setLocalSettings(updatedSettings);
+    const currentSettings = device?.settings || defaultSettings;
+    const updatedSettings = { ...currentSettings, ...newSettings };
 
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
@@ -218,7 +206,7 @@ export function useDevice(deviceId: string | null) {
         setError(err.message || "Failed to save settings.");
       });
     }, 300);
-  }, [localSettings, deviceId, database]);
+  }, [deviceId, database, device?.settings]);
 
 
   const startDevice = () => {
@@ -256,7 +244,6 @@ export function useDevice(deviceId: string | null) {
 
   return {
     device,
-    localSettings,
     loading,
     error,
     setDurations,
