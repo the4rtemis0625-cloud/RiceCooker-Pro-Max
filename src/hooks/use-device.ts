@@ -34,7 +34,7 @@ export interface DeviceState {
   settings: DeviceSettings;
   lastUpdated: number;
   queue?: string[]; // Field for sending commands
-  currentAction?: 'idle' | 'dispense rice' | 'add water' | 'cook' | null;
+  currentAction?: 'idle' | 'dispense rice' | 'add water' | 'cook' | 'done' | 'canceled' | null;
   currentStage?: {
     name: "DISPENSING" | "WASHING" | "COOKING";
     startTime: number;
@@ -75,10 +75,10 @@ export function useDevice(deviceId: string | null) {
   }, [timeoutError, toast]);
 
   // Function to send a command object to the RTDB
-  const sendCommandToQueue = useCallback((queue: string[]) => {
+  const sendCommandObject = useCallback((commandData: object) => {
     if (!deviceId || !database) return;
-    const deviceQueueRef = ref(database, `devices/${deviceId}/queue`);
-    set(deviceQueueRef, queue).catch((err) => {
+    const deviceRef = ref(database, `devices/${deviceId}`);
+    update(deviceRef, commandData).catch((err) => {
       console.error("Failed to send command:", err);
       setError(err.message || "Failed to send command to device.");
     });
@@ -104,6 +104,7 @@ export function useDevice(deviceId: string | null) {
         status: "NOT_CONNECTED",
         settings: defaultSettings,
         lastUpdated: Date.now(),
+        currentAction: null,
       });
       setLoading(false);
       clearCurrentInterval();
@@ -142,6 +143,12 @@ export function useDevice(deviceId: string | null) {
             case 'cook':
               newStatus = 'COOKING';
               break;
+            case 'done':
+              newStatus = 'DONE';
+              break;
+            case 'canceled':
+              newStatus = 'CANCELED';
+              break;
             default:
               // Fallback for other potential values or if currentAction is null/undefined
               newStatus = 'READY';
@@ -149,7 +156,7 @@ export function useDevice(deviceId: string | null) {
           }
           
           // Preserve SENDING_COMMAND status if it's currently active on the client
-          if (device?.status === 'SENDING_COMMAND' && newStatus === 'READY') {
+          if (device?.status === 'SENDING_COMMAND' && newStatus === 'READY' && data.currentAction === 'idle') {
              // If we get a READY from backend but we are sending a command, ignore the READY
              // until the device really starts the action or we time out.
           } else {
@@ -162,6 +169,7 @@ export function useDevice(deviceId: string | null) {
             status: "READY",
             settings: defaultSettings,
             lastUpdated: serverTimestamp() as any,
+            currentAction: "idle",
           };
           set(dbRef, defaultState)
             .then(() => setDevice({ ...defaultState, lastUpdated: Date.now() } as DeviceState))
@@ -269,7 +277,7 @@ export function useDevice(deviceId: string | null) {
         setDevice((prev) => {
             if (prev?.status === "SENDING_COMMAND") {
                 setTimeoutError(true);
-                return { ...prev, status: "READY" };
+                return { ...prev, status: "READY", currentAction: 'idle' };
             }
             return prev;
         });
@@ -277,34 +285,45 @@ export function useDevice(deviceId: string | null) {
   };
 
   const startDevice = () => {
-    if (device?.status === 'READY' || device?.status === 'DONE' || device?.status === 'CANCELED') {
+    const currentAction = device?.currentAction;
+    if (currentAction === 'idle' || currentAction === 'done' || currentAction === 'canceled' || !currentAction) {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
-      const queue = ["add water", "dispense rice"];
-      sendCommandToQueue(queue);
+      const command = {
+        command: "start",
+        queue: ["add water", "dispense rice"]
+      };
+      sendCommandObject(command);
     }
   };
 
   const cookDevice = () => {
-    if (device?.status === 'READY' || device?.status === 'DONE' || device?.status === 'CANCELED') {
+    const currentAction = device?.currentAction;
+    if (currentAction === 'idle' || currentAction === 'done' || currentAction === 'canceled' || !currentAction) {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
-      const queue = ["cook"];
-      sendCommandToQueue(queue);
+      const command = {
+        command: "cook",
+        queue: ["cook"]
+      };
+      sendCommandObject(command);
     }
   };
 
   const cancelDevice = () => {
-    const currentStatus = device?.status;
+    const currentAction = device?.currentAction;
     if (
-      currentStatus === "DISPENSING" ||
-      currentStatus === "WASHING" ||
-      currentStatus === "COOKING"
+      currentAction === "dispense rice" ||
+      currentAction === "add water" ||
+      currentAction === "cook"
     ) {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
-      // To cancel, we send an empty queue.
-      sendCommandToQueue([]);
+      const command = {
+        command: "cancel",
+        queue: []
+      };
+      sendCommandObject(command);
     }
   };
 
