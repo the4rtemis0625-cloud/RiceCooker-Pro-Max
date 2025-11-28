@@ -17,18 +17,11 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DeviceSettings } from "@/hooks/use-device";
 
 type SettingsPanelProps = {
-  durations: {
-    dispenseDuration: number;
-    washDuration: number;
-    cookDuration: number;
-  };
-  setDurations: {
-    setDispenseDuration: (value: number) => void;
-    setWashDuration: (value: number) => void;
-    setCookDuration: (value: number) => void;
-  };
+  durations: DeviceSettings;
+  setDurations: (settings: Partial<DeviceSettings>) => void;
   isDisabled: boolean;
 };
 
@@ -41,7 +34,6 @@ type CustomPreset = {
 
 export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsPanelProps) {
   const { dispenseDuration, washDuration, cookDuration } = durations;
-  const { setDispenseDuration, setWashDuration, setCookDuration } = setDurations;
   
   const [customPresets, setCustomPresets] = useState<CustomPreset[]>([]);
   const [newPresetName, setNewPresetName] = useState("");
@@ -58,32 +50,31 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
     }
   }, []);
 
-  const handlePreset = (preset: 'small' | 'medium' | 'large') => {
+  const handleSetDurations = (newDurations: Partial<DeviceSettings>) => {
     if (isDisabled) return;
+    setDurations(newDurations);
+  }
+
+  const handlePreset = (preset: 'small' | 'medium' | 'large') => {
     switch (preset) {
       case 'small':
-        setDispenseDuration(3);
-        setWashDuration(10);
-        setCookDuration(20);
+        handleSetDurations({ dispenseDuration: 3, washDuration: 10, cookDuration: 20 });
         break;
       case 'medium':
-        setDispenseDuration(5);
-        setWashDuration(15);
-        setCookDuration(30);
+        handleSetDurations({ dispenseDuration: 5, washDuration: 15, cookDuration: 30 });
         break;
       case 'large':
-        setDispenseDuration(8);
-        setWashDuration(20);
-        setCookDuration(45);
+        handleSetDurations({ dispenseDuration: 8, washDuration: 20, cookDuration: 45 });
         break;
     }
   };
 
   const handleCustomPreset = (preset: CustomPreset) => {
-    if (isDisabled) return;
-    setDispenseDuration(preset.dispense);
-    setWashDuration(preset.wash);
-    setCookDuration(preset.cook);
+    handleSetDurations({
+      dispenseDuration: preset.dispense,
+      washDuration: preset.wash,
+      cookDuration: preset.cook,
+    });
   };
 
   const handleSaveCustomPreset = () => {
@@ -171,7 +162,7 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
             max={30}
             step={1}
             value={[dispenseDuration]}
-            onValueChange={(value) => setDispenseDuration(value[0])}
+            onValueChange={(value) => handleSetDurations({ dispenseDuration: value[0] })}
             disabled={isDisabled}
           />
         </div>
@@ -189,7 +180,7 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
             max={60}
             step={5}
             value={[washDuration]}
-            onValueChange={(value) => setWashDuration(value[0])}
+            onValueChange={(value) => handleSetDurations({ washDuration: value[0] })}
             disabled={isDisabled}
           />
         </div>
@@ -207,7 +198,7 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
             max={120}
             step={1}
             value={[cookDuration]}
-            onValueChange={(value) => setCookDuration(value[0])}
+            onValue-change={(value) => handleSetDurations({ cookDuration: value[0] })}
             disabled={isDisabled}
           />
         </div>

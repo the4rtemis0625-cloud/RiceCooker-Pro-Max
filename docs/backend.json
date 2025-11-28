@@ -1,0 +1,69 @@
+{
+  "entities": {
+    "device": {
+      "title": "Rice Cooker Device",
+      "description": "Represents a single rice cooker device and its state.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "The current status of the rice cooker.",
+          "enum": ["READY", "DISPENSING", "WASHING", "COOKING", "DONE", "CANCELED", "NOT_CONNECTED"]
+        },
+        "settings": {
+          "type": "object",
+          "description": "Configurable settings for the device.",
+          "properties": {
+            "dispenseDuration": {
+              "type": "number",
+              "description": "Duration for dispensing rice in seconds."
+            },
+            "washDuration": {
+              "type": "number",
+              "description": "Duration for washing rice in seconds."
+            },
+            "cookDuration": {
+              "type": "number",
+              "description": "Duration for cooking rice in seconds."
+            }
+          },
+          "required": ["dispenseDuration", "washDuration", "cookDuration"]
+        },
+        "lastUpdated": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The last time the device state was updated."
+        },
+        "currentStage": {
+            "type": "object",
+            "description": "Details about the current running stage.",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "enum": ["DISPENSING", "WASHING", "COOKING"]
+                },
+                "startTime": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "duration": {
+                    "type": "number"
+                }
+            }
+        }
+      },
+      "required": ["status", "settings", "lastUpdated"]
+    }
+  },
+  "auth": {
+    "providers": ["email"]
+  },
+  "firestore": {
+    "/devices/{deviceId}": {
+      "schema": {
+        "$ref": "#/entities/device"
+      },
+      "description": "Stores state and settings for each individual rice cooker device."
+    }
+  }
+}
