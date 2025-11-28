@@ -10,8 +10,10 @@ import {
   serverTimestamp,
   Timestamp,
   DocumentData,
-  Firestore,
 } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
+
 
 export type Status =
   | "READY"
@@ -77,6 +79,12 @@ export function useDevice(deviceId: string | null) {
     setLoading(true);
     setError(null);
     const docRef = doc(firestore, "devices", deviceId);
+    
+    const defaultState: DeviceState = {
+        status: "READY",
+        settings: defaultSettings,
+        lastUpdated: Timestamp.now(),
+    };
 
     const unsubscribe = onSnapshot(
       docRef,
@@ -86,23 +94,28 @@ export function useDevice(deviceId: string | null) {
           setDevice(data);
           setError(null);
         } else {
-          // Document doesn't exist, so let's create it with default state
-          const defaultState: DeviceState = {
-            status: "READY",
-            settings: defaultSettings,
-            lastUpdated: Timestamp.now(),
-          };
-          setDoc(docRef, defaultState).catch((e) => {
-             console.error("Error creating device document:", e);
-             setError(`Could not initialize device. Please check permissions. Details: ${e.message}`);
-             setDevice({ status: "NOT_CONNECTED", settings: defaultSettings, lastUpdated: Timestamp.now() });
-          });
+          setDoc(docRef, defaultState)
+            .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: docRef.path,
+                    operation: 'create',
+                    requestResourceData: defaultState,
+                } satisfies SecurityRuleContext);
+                errorEmitter.emit('permission-error', permissionError);
+             });
           setDevice(defaultState);
         }
         setLoading(false);
       },
-      (err: any) => {
-        console.error("Error listening to device document:", err);
+      async (err: any) => {
+        if (err.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'get',
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+        }
+
         let errorMessage = "Could not connect to device. Check the device ID and your connection.";
         if (err.code === 'permission-denied') {
             errorMessage = "Permission denied. You do not have access to this device's data.";
@@ -149,26 +162,38 @@ export function useDevice(deviceId: string | null) {
   }, [device, clearCurrentInterval]);
 
 
-  const updateDeviceInFirestore = async (data: Partial<DeviceState> | DocumentData) => {
+  const updateDeviceInFirestore = (data: Partial<DeviceState> | DocumentData) => {
     if (!deviceId || !firestore) return;
     const docRef = doc(firestore, "devices", deviceId);
-    try {
-      await setDoc(docRef, { ...data, lastUpdated: serverTimestamp() }, { merge: true });
-    } catch (e: any) {
-      console.error("Error updating device:", e);
-      setError(`Failed to update device state: ${e.message}`);
-    }
+    
+    const payload = { ...data, lastUpdated: serverTimestamp() };
+    
+    setDoc(docRef, payload, { merge: true })
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: payload,
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
-  const updateDeviceIdInUserProfile = async (userId: string, newDeviceId: string | null) => {
+  const updateDeviceIdInUserProfile = (userId: string, newDeviceId: string | null) => {
     if (!userId || !firestore) return;
     const userRef = doc(firestore, "users", userId);
-    try {
-      await updateDoc(userRef, { deviceId: newDeviceId });
-    } catch (e: any) {
-      console.error("Error updating user's deviceId:", e);
-      setError(`Failed to save device ID: ${e.message}`);
-    }
+    
+    const payload = { deviceId: newDeviceId };
+
+    updateDoc(userRef, payload)
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: userRef.path,
+                operation: 'update',
+                requestResourceData: payload,
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+        });
   };
 
   const setDurations = (settings: Partial<DeviceSettings>) => {

@@ -15,6 +15,9 @@ import {
 } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
+
 
 export function LoginForm() {
   const router = useRouter();
@@ -31,16 +34,21 @@ export function LoginForm() {
       if (!firestore || !user.email) return;
 
       const userRef = doc(firestore, "users", user.uid);
-      try {
-          await setDoc(userRef, {
-              email: user.email,
-              createdAt: serverTimestamp(),
-              deviceId: null, // Initialize with no device
-          });
-      } catch (error) {
-          console.error("Error creating user profile:", error);
-          // We can optionally show a toast here, but for now, we'll log it
-      }
+      const userProfileData = {
+          email: user.email,
+          createdAt: serverTimestamp(),
+          deviceId: null, // Initialize with no device
+      };
+
+      setDoc(userRef, userProfileData)
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: userRef.path,
+                operation: 'create',
+                requestResourceData: userProfileData,
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+        });
   }
 
 
