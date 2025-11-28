@@ -160,7 +160,7 @@ export function useDevice(deviceId: string | null) {
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [deviceId, database, clearCurrentInterval, localSettings]);
+  }, [deviceId, database, clearCurrentInterval]);
 
   // Effect for client-side progress calculation
   useEffect(() => {
@@ -217,7 +217,6 @@ export function useDevice(deviceId: string | null) {
 
 
   const startDevice = () => {
-    // Send "start" command if not currently in an active state.
     if (
       device &&
       device.status !== "DISPENSING" &&
@@ -240,7 +239,6 @@ export function useDevice(deviceId: string | null) {
   };
 
   const cancelDevice = () => {
-    // Send "stop" command only if it's in an active state.
     if (
       device &&
       (device.status === "DISPENSING" ||
