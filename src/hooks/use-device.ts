@@ -73,11 +73,15 @@ export function useDevice(deviceId: string | null) {
   const setDurationsCallback = useCallback((newSettings: Partial<DeviceSettings>) => {
       if (!deviceId || !database) return;
       const dbRef = ref(database, `devices/${deviceId}/settings`);
+      
+      const currentSettings = { ...durations, ...newSettings};
+      setDurations(currentSettings);
+
       update(dbRef, newSettings).catch((err) => {
         console.error("Failed to update settings in RTDB:", err);
         setError(err.message || "Failed to save settings.");
       });
-  }, [deviceId, database]);
+  }, [deviceId, database, durations]);
 
 
   useEffect(() => {
@@ -148,11 +152,12 @@ export function useDevice(deviceId: string | null) {
               break;
           }
           
-          const currentStatus = device?.status;
+          const currentUiStatus = device?.status;
           
-          if(currentStatus === 'SENDING_COMMAND' && (newStatus === 'READY' || newStatus === 'DONE' || newStatus === 'CANCELED')) {
-             // If we just sent a command, wait for the device to actually change its state
-             // before we update the UI away from "SENDING_COMMAND"
+          // If we just sent a command, wait for the device to actually change its state
+          // before we update the UI away from "SENDING_COMMAND"
+          if(currentUiStatus === 'SENDING_COMMAND' && newStatus === 'READY') {
+             // Do nothing, wait for device to move to a non-ready state
           } else {
             setDevice({ ...data, status: newStatus, currentAction } as DeviceState);
           }
@@ -276,7 +281,9 @@ export function useDevice(deviceId: string | null) {
             "command/dispense": true,
             "command/cook": false,
             "command/cancel": false,
-            queue: ["add water", "dispense rice"]
+            "settings/dispenseDuration": durations.dispenseTime,
+            "settings/washDuration": durations.pumpTime,
+            queue: ["dispense rice", "add water"]
         });
     }
   };
@@ -288,6 +295,7 @@ export function useDevice(deviceId: string | null) {
         "command/cook": true,
         "command/dispense": false,
         "command/cancel": false,
+        "settings/cookDuration": durations.cookTime * 60, // convert minutes to seconds
         queue: ["cook"]
       });
     }

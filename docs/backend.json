@@ -78,6 +78,12 @@
                     "type": "number"
                 }
             }
+        },
+        "queue": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
         }
       },
       "required": ["currentAction", "settings", "lastUpdated"]
