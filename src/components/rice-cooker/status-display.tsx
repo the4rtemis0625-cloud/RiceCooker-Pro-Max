@@ -5,17 +5,18 @@ import type { DeviceState } from "@/hooks/use-device";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { CheckCircle, Loader, XCircle, Thermometer, Wheat, Droplets, Utensils, WifiOff } from "lucide-react";
+import { CheckCircle, Loader, XCircle, Thermometer, Wheat, Droplets, Utensils, WifiOff, PlugZap } from "lucide-react";
 import { Timestamp } from "firebase/firestore";
 
 const statusConfig = {
   READY: { text: "SYSTEM READY", icon: CheckCircle, color: "text-primary" },
   DISPENSING: { text: "DISPENSING RICE", icon: Wheat, color: "text-accent-foreground" },
-  WASHING: { text: "Adding Water", icon: Droplets, color: "text-accent-foreground" },
+  WASHING: { text: "ADDING WATER", icon: Droplets, color: "text-accent-foreground" },
   COOKING: { text: "COOKING", icon: Thermometer, color: "text-accent-foreground" },
   DONE: { text: "COOKING COMPLETE", icon: Utensils, color: "text-primary" },
   CANCELED: { text: "OPERATION CANCELED", icon: XCircle, color: "text-destructive" },
   NOT_CONNECTED: { text: "NOT CONNECTED", icon: WifiOff, color: "text-muted-foreground" },
+  SENDING_COMMAND: { text: "CONNECTING...", icon: PlugZap, color: "text-accent-foreground" },
 };
 
 type StatusDisplayProps = {
@@ -31,7 +32,7 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
   const minutes = Math.floor(timeRemaining / 60);
   const seconds = timeRemaining % 60;
 
-  const isRunning = safeStatus === "DISPENSING" || safeStatus === "WASHING" || safeStatus === "COOKING";
+  const isRunning = safeStatus === "DISPENSING" || safeStatus === "WASHING" || safeStatus === "COOKING" || safeStatus === "SENDING_COMMAND";
   const isConnected = safeStatus !== 'NOT_CONNECTED';
 
   return (
@@ -53,12 +54,12 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
           <Icon className={cn("h-8 w-8", color, isRunning && "animate-spin")} />
           <h2 className={cn("text-3xl font-bold font-mono tracking-wider", isRunning ? 'text-accent-foreground' : 'text-foreground')}>
             {text}
-            { isConnected && <span className="blinking-cursor ml-1">_</span> }
+            { isConnected && safeStatus !== 'SENDING_COMMAND' && <span className="blinking-cursor ml-1">_</span> }
           </h2>
         </div>
         
         <div className="h-16">
-          {isRunning && (
+          {isRunning && safeStatus !== 'SENDING_COMMAND' && (
             <div className="space-y-2">
               <p className={cn("font-mono text-5xl font-bold", isRunning ? 'text-accent-foreground' : 'text-foreground')}>
                 {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}

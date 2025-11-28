@@ -19,7 +19,8 @@ export type Status =
   | "COOKING"
   | "DONE"
   | "CANCELED"
-  | "NOT_CONNECTED";
+  | "NOT_CONNECTED"
+  | "SENDING_COMMAND";
 
 export interface DeviceSettings {
   pumpTime: number;
@@ -102,7 +103,6 @@ export function useDevice(deviceId: string | null) {
         if (snapshot.exists()) {
           const data = snapshot.val() as DeviceState;
           
-          // Ensure settings are valid numbers, otherwise merge with defaults
           const saneSettings: DeviceSettings = {
             pumpTime: typeof data.settings?.pumpTime === 'number' ? data.settings.pumpTime : defaultSettings.pumpTime,
             dispenseTime: typeof data.settings?.dispenseTime === 'number' ? data.settings.dispenseTime : defaultSettings.dispenseTime,
@@ -112,7 +112,6 @@ export function useDevice(deviceId: string | null) {
           setDevice({ ...data, settings: saneSettings });
 
         } else {
-          // If device doesn't exist, create it with default state
           const defaultState: Partial<DeviceState> & { settings: DeviceSettings } = {
             status: "READY",
             settings: defaultSettings,
@@ -145,7 +144,6 @@ export function useDevice(deviceId: string | null) {
       }
     );
 
-    // Cleanup listener
     return () => {
       off(dbRef, "value", listener);
       clearCurrentInterval();
@@ -155,7 +153,6 @@ export function useDevice(deviceId: string | null) {
     };
   }, [deviceId, database, clearCurrentInterval]);
 
-  // Effect for client-side progress calculation
   useEffect(() => {
     clearCurrentInterval();
 
@@ -169,8 +166,6 @@ export function useDevice(deviceId: string | null) {
       const { startTime, duration } = device.currentStage;
       
       intervalRef.current = setInterval(() => {
-        // The ESP32 is the source of truth for status changes.
-        // This interval is only for smooth client-side display of time remaining and progress.
         const now = Date.now();
         const elapsed = (now - startTime) / 1000;
         const remaining = Math.max(0, duration - elapsed);
@@ -179,8 +174,6 @@ export function useDevice(deviceId: string | null) {
         setDevice((prev) => prev ? { ...prev, timeRemaining: Math.round(remaining), progress } : null);
 
         if (remaining <= 0) {
-            // Don't change state here, wait for the device to report the new state.
-            // Just clear the interval.
             clearCurrentInterval();
         }
       }, 500); 
@@ -191,42 +184,37 @@ export function useDevice(deviceId: string | null) {
 
 
   const setDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
-    const currentSettings = device?.settings || defaultSettings;
-    const updatedSettings = { ...currentSettings, ...newSettings };
-
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
 
+    setDevice(prev => prev ? { ...prev, settings: { ...prev.settings, ...newSettings } } : null);
+
     debounceTimeoutRef.current = setTimeout(() => {
       if (!deviceId || !database) return;
+
+      const currentSettings = device?.settings || defaultSettings;
+      const updatedSettings = { ...currentSettings, ...newSettings };
+
       const dbRef = ref(database, `devices/${deviceId}/settings`);
       update(dbRef, updatedSettings).catch((err) => {
         console.error("Failed to update settings in RTDB:", err);
         setError(err.message || "Failed to save settings.");
       });
-    }, 300);
+    }, 500);
   }, [deviceId, database, device?.settings]);
 
 
   const startDevice = () => {
-    if (
-      device &&
-      device.status !== "DISPENSING" &&
-      device.status !== "WASHING" &&
-      device.status !== "COOKING"
-    ) {
+    if (device && (device.status === 'READY' || device.status === 'DONE' || device.status === 'CANCELED')) {
+      setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       sendCommand("start");
     }
   };
 
   const cookDevice = () => {
-    if (
-      device &&
-      device.status !== "DISPENSING" &&
-      device.status !== "WASHING" &&
-      device.status !== "COOKING"
-    ) {
+    if (device && (device.status === 'READY' || device.status === 'DONE' || device.status === 'CANCELED')) {
+      setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       sendCommand("cook");
     }
   };
@@ -238,6 +226,7 @@ export function useDevice(deviceId: string | null) {
         device.status === "WASHING" ||
         device.status === "COOKING")
     ) {
+      setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       sendCommand("stop");
     }
   };
