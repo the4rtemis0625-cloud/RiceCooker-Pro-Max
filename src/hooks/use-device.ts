@@ -73,11 +73,11 @@ export function useDevice(deviceId: string | null) {
     }
   }, [timeoutError, toast]);
 
-  // Function to send a command to the RTDB
-  const sendCommand = useCallback((command: string) => {
+  // Function to send a command object to the RTDB
+  const sendCommandObject = useCallback((commandObj: object) => {
     if (!deviceId || !database) return;
     const deviceRef = ref(database, `devices/${deviceId}`);
-    update(deviceRef, { command: command }).catch((err) => {
+    update(deviceRef, commandObj).catch((err) => {
       console.error("Failed to send command:", err);
       setError(err.message || "Failed to send command to device.");
     });
@@ -257,7 +257,11 @@ export function useDevice(deviceId: string | null) {
     if (currentStatus === 'READY' || currentStatus === 'DONE' || currentStatus === 'CANCELED') {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
-      sendCommand("start");
+      const command = {
+        command: "start",
+        queue: ["add water", "dispense rice", "cook"]
+      };
+      sendCommandObject(command);
     }
   };
 
@@ -266,7 +270,7 @@ export function useDevice(deviceId: string | null) {
     if (currentStatus === 'READY' || currentStatus === 'DONE' || currentStatus === 'CANCELED') {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
-      sendCommand("cook");
+      sendCommandObject({ command: "cook" });
     }
   };
 
@@ -279,7 +283,7 @@ export function useDevice(deviceId: string | null) {
     ) {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
-      sendCommand("stop");
+      sendCommandObject({ command: "stop" });
     }
   };
 
