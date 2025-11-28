@@ -214,31 +214,24 @@ export function useDevice(deviceId: string | null) {
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
-
-    setDevice(prev => prev ? { ...prev, settings: { ...prev.settings, ...newSettings } } : null);
-
     debounceTimeoutRef.current = setTimeout(() => {
       if (!deviceId || !database) return;
-
-      const currentSettings = device?.settings || defaultSettings;
-      const updatedSettings = { ...currentSettings, ...newSettings };
-
       const dbRef = ref(database, `devices/${deviceId}/settings`);
-      update(dbRef, updatedSettings).catch((err) => {
+      update(dbRef, newSettings).catch((err) => {
         console.error("Failed to update settings in RTDB:", err);
         setError(err.message || "Failed to save settings.");
       });
     }, 500);
-  }, [deviceId, database, device?.settings]);
+  }, [deviceId, database]);
 
 
   const startDevice = () => {
     const currentAction = device?.currentAction;
     if (currentAction !== 'dispense rice' && currentAction !== 'add water' && currentAction !== 'cook') {
-      sendCommandObject({
-        command: "start",
-        queue: ["add water", "dispense rice"]
-      });
+        sendCommandObject({
+            command: "start",
+            queue: ["add water", "dispense rice"]
+        });
     }
   };
 
@@ -276,3 +269,4 @@ export function useDevice(deviceId: string | null) {
     cancelDevice,
   };
 }
+
