@@ -104,7 +104,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
             onStart={startDevice}
             onCancel={cancelDevice}
             isRunning={isRunning}
-            isDisabled={!isConnected || currentDevice.status === 'CANCELED'}
+            isDisabled={!isConnected}
             />
         </div>
     </div>
