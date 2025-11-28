@@ -272,10 +272,10 @@ export function useDevice(deviceId: string | null) {
 
   const startDevice = () => {
     sendCommandObject({
+      "command/add_water": true,
       "command/dispense": false,
       "command/cook": false,
       "command/cancel": false,
-      "command/add_water": true,
       "settings/dispenseDuration": durations.dispenseTime,
       "settings/washDuration": durations.pumpTime,
       queue: ["add water", "dispense rice"]
@@ -286,8 +286,8 @@ export function useDevice(deviceId: string | null) {
     sendCommandObject({
       "command/cook": true,
       "command/dispense": false,
-      "command/cancel": false,
       "command/add_water": false,
+      "command/cancel": false,
       "settings/cookDuration": durations.cookTime * 60, // convert minutes to seconds
       queue: ["cook"]
     });
