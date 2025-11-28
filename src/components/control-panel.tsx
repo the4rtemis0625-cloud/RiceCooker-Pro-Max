@@ -24,7 +24,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const database = useDatabase();
   const auth = useAuth();
 
-  const { device, loading, error, setDurations, startDevice, cookDevice, cancelDevice, timeRemaining, progress } = useDevice(deviceId);
+  const { device, durations, loading, error, setDurations, startDevice, cookDevice, cancelDevice, timeRemaining, progress } = useDevice(deviceId);
 
   const updateDeviceIdInUserProfile = (newDeviceId: string | null) => {
     const user = auth?.currentUser;
@@ -100,7 +100,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
 
         <div className={cn(!isConnected && "opacity-50 pointer-events-none")}>
             <SettingsPanel
-              durations={device?.settings}
+              durations={durations}
               setDurations={setDurations}
               isDisabled={isRunning || !isConnected}
             />

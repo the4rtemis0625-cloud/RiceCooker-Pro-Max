@@ -29,7 +29,6 @@ export interface DeviceSettings {
 
 export interface DeviceState {
   status: Status;
-  settings: DeviceSettings;
   lastUpdated: number;
   queue?: string[];
   command?: {
@@ -54,6 +53,7 @@ const defaultSettings: DeviceSettings = {
 export function useDevice(deviceId: string | null) {
   const database = useDatabase();
   const [device, setDevice] = useState<DeviceState | null>(null);
+  const [durations, setDurations] = useState<DeviceSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -68,6 +68,18 @@ export function useDevice(deviceId: string | null) {
     }
   }, []);
 
+  const handleSetDurations = (newSettings: Partial<DeviceSettings>) => {
+    if (!deviceId || !database) return;
+    
+    setDurations(prev => ({...prev, ...newSettings}));
+
+    const dbRef = ref(database, `devices/${deviceId}/settings`);
+    update(dbRef, newSettings).catch((err) => {
+      console.error("Failed to update settings in RTDB:", err);
+      setError(err.message || "Failed to save settings.");
+    });
+  };
+
   useEffect(() => {
     if (!database) {
       setLoading(false);
@@ -77,10 +89,10 @@ export function useDevice(deviceId: string | null) {
     if (!deviceId) {
       setDevice({
         status: "NOT_CONNECTED",
-        settings: defaultSettings,
         lastUpdated: Date.now(),
         currentAction: null,
       });
+      setDurations(defaultSettings);
       setLoading(false);
       clearCurrentInterval();
       return;
@@ -94,7 +106,7 @@ export function useDevice(deviceId: string | null) {
       dbRef,
       (snapshot) => {
         if (snapshot.exists()) {
-          const data = snapshot.val() as Partial<DeviceState>;
+          const data = snapshot.val() as Partial<DeviceState & { settings: DeviceSettings }>;
           
           const saneSettings: DeviceSettings = {
             pumpTime: typeof data.settings?.pumpTime === 'number' ? data.settings.pumpTime : defaultSettings.pumpTime,
@@ -102,8 +114,10 @@ export function useDevice(deviceId: string | null) {
             cookTime: typeof data.settings?.cookTime === 'number' ? data.settings.cookTime : defaultSettings.cookTime,
           };
           
+          setDurations(saneSettings);
+
           let newStatus: Status;
-          const currentAction = data.currentAction || 'idle';
+          const currentAction = data.currentAction ?? 'idle';
 
           switch (currentAction) {
             case 'idle':
@@ -129,16 +143,19 @@ export function useDevice(deviceId: string | null) {
               break;
           }
           
-          setDevice({ ...data, status: newStatus, settings: saneSettings, currentAction } as DeviceState);
+          setDevice({ ...data, status: newStatus, currentAction } as DeviceState);
 
         } else {
-          const defaultState: Partial<DeviceState> & { settings: DeviceSettings } = {
+          const defaultState = {
             settings: defaultSettings,
-            lastUpdated: serverTimestamp() as any,
+            lastUpdated: serverTimestamp(),
             currentAction: "idle",
           };
           set(dbRef, defaultState)
-            .then(() => setDevice({ ...defaultState, lastUpdated: Date.now(), status: "READY" } as DeviceState))
+            .then(() => {
+              setDevice({ ...defaultState, lastUpdated: Date.now(), status: "READY" } as DeviceState);
+              setDurations(defaultSettings);
+            })
             .catch((err) => {
                 console.error("Failed to create device state in RTDB:", err);
                 setError(err.message || "Could not initialize device state.");
@@ -157,9 +174,9 @@ export function useDevice(deviceId: string | null) {
         setError(errorMessage);
         setDevice({
           status: "NOT_CONNECTED",
-          settings: device?.settings ?? defaultSettings,
           lastUpdated: Date.now(),
         });
+        setDurations(defaultSettings);
         setLoading(false);
       }
     );
@@ -168,7 +185,7 @@ export function useDevice(deviceId: string | null) {
       off(dbRef, "value", listener);
       clearCurrentInterval();
     };
-  }, [deviceId, database, clearCurrentInterval, device?.settings]);
+  }, [deviceId, database, clearCurrentInterval]);
 
   useEffect(() => {
     clearCurrentInterval();
@@ -206,15 +223,6 @@ export function useDevice(deviceId: string | null) {
     update(deviceRef, commandData).catch((err) => {
       console.error("Failed to send command:", err);
       setError(err.message || "Failed to send command to device.");
-    });
-  };
-
-  const setDurations = (newSettings: Partial<DeviceSettings>) => {
-    if (!deviceId || !database) return;
-    const dbRef = ref(database, `devices/${deviceId}/settings`);
-    update(dbRef, newSettings).catch((err) => {
-      console.error("Failed to update settings in RTDB:", err);
-      setError(err.message || "Failed to save settings.");
     });
   };
 
@@ -260,9 +268,10 @@ export function useDevice(deviceId: string | null) {
 
   return {
     device,
+    durations,
     loading,
     error,
-    setDurations,
+    setDurations: handleSetDurations,
     startDevice,
     cookDevice,
     cancelDevice,

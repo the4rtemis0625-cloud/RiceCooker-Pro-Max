@@ -33,13 +33,7 @@ type CustomPreset = {
   cookTime: number;
 };
 
-const defaultDurations: DeviceSettings = {
-  pumpTime: 5,
-  dispenseTime: 10,
-  cookTime: 30,
-};
-
-export function SettingsPanel({ durations = defaultDurations, setDurations, isDisabled }: SettingsPanelProps) {
+export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsPanelProps) {
   
   const [customPresets, setCustomPresets] = useState<CustomPreset[]>([]);
   const [newPresetName, setNewPresetName] = useState("");
