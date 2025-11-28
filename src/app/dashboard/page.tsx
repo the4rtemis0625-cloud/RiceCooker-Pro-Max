@@ -7,6 +7,7 @@ import { User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { ControlPanel } from "@/components/control-panel";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 interface UserProfile {
     deviceId: string | null;
@@ -56,6 +57,14 @@ export default function DashboardPage() {
     return () => unsubscribe();
   }, [auth, firestore, router]);
 
+  const handleCheckAuth = () => {
+    if (auth) {
+      console.log("Current Auth User:", auth.currentUser);
+    } else {
+      console.log("Auth service not available.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 space-y-4">
@@ -71,6 +80,9 @@ export default function DashboardPage() {
   if(user) {
     return (
         <main className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 space-y-4">
+            <div className="absolute top-4 right-4">
+              <Button onClick={handleCheckAuth} variant="outline">Check Auth State</Button>
+            </div>
             <ControlPanel initialDeviceId={deviceId} />
         </main>
     );
