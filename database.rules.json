@@ -11,9 +11,6 @@
       "$deviceId": {
         ".read": "auth != null && root.child('users').child(auth.uid).child('deviceId').val() == $deviceId",
         ".write": false,
-        "command": {
-          ".write": "auth != null && root.child('users').child(auth.uid).child('deviceId').val() == $deviceId"
-        },
         "settings": {
             ".write": "auth != null && root.child('users').child(auth.uid).child('deviceId').val() == $deviceId"
         },
@@ -24,5 +21,3 @@
     }
   }
 }
-
-    

@@ -33,7 +33,7 @@ export interface DeviceState {
   status: Status;
   settings: DeviceSettings;
   lastUpdated: number;
-  command?: string; // Field for sending commands
+  queue?: string[]; // Field for sending commands
   currentStage?: {
     name: "DISPENSING" | "WASHING" | "COOKING";
     startTime: number;
@@ -74,10 +74,10 @@ export function useDevice(deviceId: string | null) {
   }, [timeoutError, toast]);
 
   // Function to send a command object to the RTDB
-  const sendCommandObject = useCallback((commandObj: object) => {
+  const sendCommandToQueue = useCallback((queue: string[]) => {
     if (!deviceId || !database) return;
-    const deviceRef = ref(database, `devices/${deviceId}`);
-    update(deviceRef, commandObj).catch((err) => {
+    const deviceQueueRef = ref(database, `devices/${deviceId}/queue`);
+    set(deviceQueueRef, queue).catch((err) => {
       console.error("Failed to send command:", err);
       setError(err.message || "Failed to send command to device.");
     });
@@ -257,11 +257,8 @@ export function useDevice(deviceId: string | null) {
     if (currentStatus === 'READY' || currentStatus === 'DONE' || currentStatus === 'CANCELED') {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
-      const command = {
-        command: "start",
-        queue: ["add water", "dispense rice", "cook"]
-      };
-      sendCommandObject(command);
+      const queue = ["add water", "dispense rice"];
+      sendCommandToQueue(queue);
     }
   };
 
@@ -270,7 +267,8 @@ export function useDevice(deviceId: string | null) {
     if (currentStatus === 'READY' || currentStatus === 'DONE' || currentStatus === 'CANCELED') {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
-      sendCommandObject({ command: "cook" });
+      const queue = ["cook"];
+      sendCommandToQueue(queue);
     }
   };
 
@@ -283,7 +281,8 @@ export function useDevice(deviceId: string | null) {
     ) {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
-      sendCommandObject({ command: "stop" });
+      // To cancel, we send an empty queue.
+      sendCommandToQueue([]);
     }
   };
 
