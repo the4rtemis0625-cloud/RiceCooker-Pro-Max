@@ -31,6 +31,7 @@ export interface DeviceState {
   status: Status;
   settings: DeviceSettings;
   lastUpdated: number;
+  command?: string; // Field for sending commands
   currentStage?: {
     name: "DISPENSING" | "WASHING" | "COOKING";
     startTime: number;
@@ -53,9 +54,8 @@ export function useDevice(deviceId: string | null) {
   const [error, setError] = useState<string | null>(null);
   
   const [localSettings, setLocalSettings] = useState<DeviceSettings>(defaultSettings);
-
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const clearCurrentInterval = useCallback(() => {
     if (intervalRef.current) {
@@ -63,14 +63,13 @@ export function useDevice(deviceId: string | null) {
       intervalRef.current = null;
     }
   }, []);
-  
-  const updateDeviceInRtdb = useCallback((data: Partial<Omit<DeviceState, 'settings'>>) => {
+
+  const sendCommand = useCallback((command: string) => {
     if (!deviceId || !database) return;
-    const dbRef = ref(database, `devices/${deviceId}`);
-    const payload = { ...data, lastUpdated: serverTimestamp() };
-    update(dbRef, payload).catch((err) => {
-        console.error("Failed to update device in RTDB:", err);
-        setError(err.message || "Failed to send command to device.");
+    const commandRef = ref(database, `devices/${deviceId}/command`);
+    set(commandRef, command).catch((err) => {
+      console.error("Failed to send command:", err);
+      setError(err.message || "Failed to send command to device.");
     });
   }, [deviceId, database]);
 
@@ -78,7 +77,7 @@ export function useDevice(deviceId: string | null) {
     if (device?.settings && JSON.stringify(device.settings) !== JSON.stringify(localSettings)) {
       setLocalSettings(device.settings);
     }
-  }, [device?.settings]);
+  }, [device?.settings, localSettings]);
 
 
   useEffect(() => {
@@ -114,13 +113,13 @@ export function useDevice(deviceId: string | null) {
           }
           setError(null);
         } else {
-          const defaultState: Omit<DeviceState, 'timeRemaining' | 'progress' | 'currentStage'> = {
+          const defaultState: Partial<DeviceState> = {
             status: "READY",
             settings: defaultSettings,
             lastUpdated: serverTimestamp() as any,
           };
           set(dbRef, defaultState)
-            .then(() => setDevice({ ...defaultState, lastUpdated: Date.now(), settings: defaultSettings }))
+            .then(() => setDevice({ ...defaultState, lastUpdated: Date.now() } as DeviceState))
             .catch((err) => {
                 console.error("Failed to create device state in RTDB:", err);
                 setError(err.message || "Could not initialize device state.");
@@ -165,50 +164,25 @@ export function useDevice(deviceId: string | null) {
       device.status !== "CANCELED" &&
       device.status !== "NOT_CONNECTED"
     ) {
-      const { startTime, duration, name } = device.currentStage;
+      const { startTime, duration } = device.currentStage;
       
       intervalRef.current = setInterval(() => {
+        // The ESP32 is now the source of truth, so we only need to calculate time remaining for display
         const now = Date.now();
         const elapsed = (now - startTime) / 1000;
         const remaining = Math.max(0, duration - elapsed);
         const progress = Math.min(100, (elapsed / duration) * 100);
 
-        setDevice(
-          (prev) =>
-            prev
-              ? { ...prev, timeRemaining: Math.round(remaining), progress }
-              : null
-        );
+        setDevice((prev) => prev ? { ...prev, timeRemaining: Math.round(remaining), progress } : null);
 
         if (remaining <= 0) {
             clearCurrentInterval();
-            if (name === 'WASHING') {
-                updateDeviceInRtdb({
-                    status: 'DISPENSING',
-                    currentStage: {
-                        name: 'DISPENSING',
-                        startTime: serverTimestamp() as any,
-                        duration: localSettings.dispenseDuration,
-                    },
-                });
-            } else if (name === 'DISPENSING') {
-                updateDeviceInRtdb({ 
-                    status: 'COOKING', 
-                    currentStage: {
-                        name: 'COOKING',
-                        startTime: serverTimestamp() as any,
-                        duration: localSettings.cookDuration,
-                    },
-                });
-            } else if (name === 'COOKING') {
-                updateDeviceInRtdb({ status: 'DONE', currentStage: null });
-            }
         }
       }, 500); 
     }
 
     return () => clearCurrentInterval();
-  }, [device?.status, device?.currentStage, clearCurrentInterval, updateDeviceInRtdb, localSettings.washDuration, localSettings.dispenseDuration, localSettings.cookDuration]);
+  }, [device?.status, device?.currentStage, clearCurrentInterval]);
 
 
   const setDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
@@ -237,14 +211,7 @@ export function useDevice(deviceId: string | null) {
         device.status === "DONE" ||
         device.status === "CANCELED")
     ) {
-      updateDeviceInRtdb({
-        status: "WASHING",
-        currentStage: {
-          name: "WASHING",
-          startTime: serverTimestamp() as any,
-          duration: localSettings.washDuration,
-        },
-      });
+      sendCommand("start");
     }
   };
 
@@ -255,7 +222,7 @@ export function useDevice(deviceId: string | null) {
         device.status === "WASHING" ||
         device.status === "COOKING")
     ) {
-      updateDeviceInRtdb({ status: "READY", currentStage: null });
+      sendCommand("stop");
     }
   };
 
@@ -269,3 +236,5 @@ export function useDevice(deviceId: string | null) {
     cancelDevice,
   };
 }
+
+    
