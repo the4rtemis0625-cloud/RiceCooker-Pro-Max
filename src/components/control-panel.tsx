@@ -64,7 +64,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
     }
   }, [error, toast]);
   
-  const currentDevice = device ?? { status: 'NOT_CONNECTED' } as DeviceState;
+  const currentDevice = device ?? { status: 'NOT_CONNECTED' } as Partial<DeviceState>;
   const isRunning = currentDevice.status === "DISPENSING" || currentDevice.status === "WASHING" || currentDevice.status === "COOKING";
   const isConnected = currentDevice.status !== 'NOT_CONNECTED';
 
@@ -88,7 +88,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
         />
         
         <StatusDisplay
-            status={currentDevice.status}
+            status={currentDevice.status as any}
             timeRemaining={currentDevice.timeRemaining ?? 0}
             progress={currentDevice.progress ?? 0}
             deviceId={deviceId ?? ""}
