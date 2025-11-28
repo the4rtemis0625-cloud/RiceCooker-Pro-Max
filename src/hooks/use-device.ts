@@ -57,13 +57,7 @@ export function useDevice(deviceId: string | null) {
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const clearCurrentInterval = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
-
+  // Function to send a command to the RTDB
   const sendCommand = useCallback((command: string) => {
     if (!deviceId || !database) return;
     const commandRef = ref(database, `devices/${deviceId}/command`);
@@ -73,13 +67,24 @@ export function useDevice(deviceId: string | null) {
     });
   }, [deviceId, database]);
 
+
+  const clearCurrentInterval = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+
+  // Effect to sync remote settings to local state
   useEffect(() => {
     if (device?.settings && JSON.stringify(device.settings) !== JSON.stringify(localSettings)) {
       setLocalSettings(device.settings);
     }
-  }, [device?.settings, localSettings]);
+  }, [device?.settings]);
 
 
+  // Effect to listen for device state changes from RTDB
   useEffect(() => {
     if (!database) {
       setLoading(false);
@@ -113,6 +118,7 @@ export function useDevice(deviceId: string | null) {
           }
           setError(null);
         } else {
+          // If device doesn't exist, create it with default state
           const defaultState: Partial<DeviceState> = {
             status: "READY",
             settings: defaultSettings,
@@ -145,6 +151,7 @@ export function useDevice(deviceId: string | null) {
       }
     );
 
+    // Cleanup listener
     return () => {
       off(dbRef, "value", listener);
       clearCurrentInterval();
@@ -154,6 +161,7 @@ export function useDevice(deviceId: string | null) {
     };
   }, [deviceId, database, clearCurrentInterval]);
 
+  // Effect for client-side progress calculation
   useEffect(() => {
     clearCurrentInterval();
 
@@ -167,7 +175,8 @@ export function useDevice(deviceId: string | null) {
       const { startTime, duration } = device.currentStage;
       
       intervalRef.current = setInterval(() => {
-        // The ESP32 is now the source of truth, so we only need to calculate time remaining for display
+        // The ESP32 is the source of truth for status changes.
+        // This interval is only for smooth client-side display of time remaining and progress.
         const now = Date.now();
         const elapsed = (now - startTime) / 1000;
         const remaining = Math.max(0, duration - elapsed);
@@ -176,6 +185,8 @@ export function useDevice(deviceId: string | null) {
         setDevice((prev) => prev ? { ...prev, timeRemaining: Math.round(remaining), progress } : null);
 
         if (remaining <= 0) {
+            // Don't change state here, wait for the device to report the new state.
+            // Just clear the interval.
             clearCurrentInterval();
         }
       }, 500); 
@@ -205,17 +216,19 @@ export function useDevice(deviceId: string | null) {
 
 
   const startDevice = () => {
+    // Send "start" command if not currently in an active state.
     if (
       device &&
-      (device.status === "READY" ||
-        device.status === "DONE" ||
-        device.status === "CANCELED")
+      device.status !== "DISPENSING" &&
+      device.status !== "WASHING" &&
+      device.status !== "COOKING"
     ) {
       sendCommand("start");
     }
   };
 
   const cancelDevice = () => {
+    // Send "stop" command only if it's in an active state.
     if (
       device &&
       (device.status === "DISPENSING" ||
@@ -236,5 +249,3 @@ export function useDevice(deviceId: string | null) {
     cancelDevice,
   };
 }
-
-    
