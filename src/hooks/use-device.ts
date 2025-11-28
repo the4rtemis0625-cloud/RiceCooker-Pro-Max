@@ -34,7 +34,7 @@ export interface DeviceState {
   settings: DeviceSettings;
   lastUpdated: number;
   queue?: string[]; // Field for sending commands
-  currentAction?: 'dispense rice' | 'add water' | 'cook' | null;
+  currentAction?: 'idle' | 'dispense rice' | 'add water' | 'cook' | null;
   currentStage?: {
     name: "DISPENSING" | "WASHING" | "COOKING";
     startTime: number;
@@ -126,34 +126,36 @@ export function useDevice(deviceId: string | null) {
             cookTime: typeof data.settings?.cookTime === 'number' ? data.settings.cookTime : defaultSettings.cookTime,
           };
           
-          let newStatus = data.status;
+          let newStatus: Status;
 
           // Map currentAction to status
-          if (data.currentAction) {
-            switch(data.currentAction) {
-              case 'dispense rice':
-                newStatus = 'DISPENSING';
-                break;
-              case 'add water':
-                newStatus = 'WASHING';
-                break;
-              case 'cook':
-                newStatus = 'COOKING';
-                break;
-              default:
-                // If currentAction is null or something else, check the old status field
-                if (data.status === "Online – Queue Ready" as any || data.status === "Online - Queue Ready" as any) {
-                  newStatus = "READY";
-                }
-                break;
-            }
+          switch (data.currentAction) {
+            case 'idle':
+              newStatus = 'READY';
+              break;
+            case 'dispense rice':
+              newStatus = 'DISPENSING';
+              break;
+            case 'add water':
+              newStatus = 'WASHING';
+              break;
+            case 'cook':
+              newStatus = 'COOKING';
+              break;
+            default:
+              // Fallback for other potential values or if currentAction is null/undefined
+              newStatus = 'READY';
+              break;
+          }
+          
+          // Preserve SENDING_COMMAND status if it's currently active on the client
+          if (device?.status === 'SENDING_COMMAND' && newStatus === 'READY') {
+             // If we get a READY from backend but we are sending a command, ignore the READY
+             // until the device really starts the action or we time out.
           } else {
-             if (data.status === "Online – Queue Ready" as any || data.status === "Online - Queue Ready" as any) {
-                newStatus = "READY";
-            }
+             setDevice({ ...data, status: newStatus, settings: saneSettings });
           }
 
-          setDevice({ ...data, status: newStatus, settings: saneSettings });
 
         } else {
           const defaultState: Partial<DeviceState> & { settings: DeviceSettings } = {
@@ -198,7 +200,7 @@ export function useDevice(deviceId: string | null) {
         clearTimeout(commandTimeoutRef.current);
       }
     };
-  }, [deviceId, database, clearCurrentInterval]);
+  }, [deviceId, database, clearCurrentInterval, device?.status]);
 
   useEffect(() => {
     clearCurrentInterval();
@@ -275,8 +277,7 @@ export function useDevice(deviceId: string | null) {
   };
 
   const startDevice = () => {
-    const currentStatus = device?.status;
-    if (currentStatus === 'READY' || currentStatus === 'DONE' || currentStatus === 'CANCELED') {
+    if (device?.status === 'READY' || device?.status === 'DONE' || device?.status === 'CANCELED') {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
       const queue = ["add water", "dispense rice"];
@@ -285,8 +286,7 @@ export function useDevice(deviceId: string | null) {
   };
 
   const cookDevice = () => {
-    const currentStatus = device?.status;
-    if (currentStatus === 'READY' || currentStatus === 'DONE' || currentStatus === 'CANCELED') {
+    if (device?.status === 'READY' || device?.status === 'DONE' || device?.status === 'CANCELED') {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
       const queue = ["cook"];

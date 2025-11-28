@@ -5,10 +5,10 @@
       "description": "Represents a single rice cooker device and its state.",
       "type": "object",
       "properties": {
-        "status": {
+        "currentAction": {
           "type": "string",
-          "description": "The current status of the rice cooker.",
-          "enum": ["READY", "DISPENSING", "WASHING", "COOKING", "DONE", "CANCELED", "NOT_CONNECTED"]
+          "description": "The specific action the device is currently performing.",
+          "enum": ["idle", "dispense rice", "add water", "cook"]
         },
         "settings": {
           "type": "object",
@@ -59,14 +59,9 @@
                     "type": "number"
                 }
             }
-        },
-        "currentAction": {
-            "type": "string",
-            "description": "The specific action the device is currently performing.",
-            "enum": ["dispense rice", "add water", "cook"]
         }
       },
-      "required": ["status", "settings", "lastUpdated"]
+      "required": ["currentAction", "settings", "lastUpdated"]
     },
     "UserProfile": {
         "title": "User Profile",
