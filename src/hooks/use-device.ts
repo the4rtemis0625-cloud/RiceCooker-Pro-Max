@@ -55,7 +55,6 @@ export function useDevice(deviceId: string | null) {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [progress, setProgress] = useState(0);
   
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const sendCommandObject = useCallback((commandData: object) => {
@@ -174,9 +173,6 @@ export function useDevice(deviceId: string | null) {
     return () => {
       off(dbRef, "value", listener);
       clearCurrentInterval();
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
     };
   }, [deviceId, database, clearCurrentInterval, device?.settings]);
 
@@ -211,19 +207,14 @@ export function useDevice(deviceId: string | null) {
   }, [device?.status, device?.currentStage, clearCurrentInterval]);
 
 
-  const setDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-    debounceTimeoutRef.current = setTimeout(() => {
+  const setDurations = (newSettings: Partial<DeviceSettings>) => {
       if (!deviceId || !database) return;
       const dbRef = ref(database, `devices/${deviceId}/settings`);
       update(dbRef, newSettings).catch((err) => {
         console.error("Failed to update settings in RTDB:", err);
         setError(err.message || "Failed to save settings.");
       });
-    }, 500);
-  }, [deviceId, database]);
+  };
 
 
   const startDevice = () => {
