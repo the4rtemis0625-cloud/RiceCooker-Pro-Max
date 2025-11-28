@@ -23,7 +23,7 @@ export function ActionButtons({ onStart, onCook, onCancel, isRunning, isReady, i
         className="w-full text-lg font-bold tracking-wider"
       >
         <Play className="mr-2 h-5 w-5" />
-        Dispense & Wash
+        Dispense & Add Water
       </Button>
       <Button
         onClick={onCook}
