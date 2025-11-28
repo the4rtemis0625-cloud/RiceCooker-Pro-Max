@@ -55,10 +55,23 @@ export function useDevice(deviceId: string | null) {
   const [device, setDevice] = useState<DeviceState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeoutError, setTimeoutError] = useState(false);
   
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const commandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Effect to show toast on timeout error
+  useEffect(() => {
+    if (timeoutError) {
+      toast({
+        variant: "destructive",
+        title: "Device Connection Timeout",
+        description: "The device did not respond. Please check its connection and try again.",
+      });
+      setTimeoutError(false); // Reset the error state
+    }
+  }, [timeoutError, toast]);
 
   // Function to send a command to the RTDB
   const sendCommand = useCallback((command: string) => {
@@ -231,11 +244,7 @@ export function useDevice(deviceId: string | null) {
     commandTimeoutRef.current = setTimeout(() => {
         setDevice((prev) => {
             if (prev?.status === "SENDING_COMMAND") {
-                toast({
-                  variant: "destructive",
-                  title: "Device Connection Timeout",
-                  description: "The device did not respond. Please check its connection and try again.",
-                });
+                setTimeoutError(true);
                 return { ...prev, status: "READY" };
             }
             return prev;
