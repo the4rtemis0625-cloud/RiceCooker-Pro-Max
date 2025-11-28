@@ -35,7 +35,7 @@ export interface DeviceState {
     name: "DISPENSING" | "WASHING" | "COOKING";
     startTime: number;
     duration: number;
-  };
+  } | null;
   timeRemaining?: number;
   progress?: number;
 }
@@ -63,9 +63,19 @@ export function useDevice(deviceId: string | null) {
       intervalRef.current = null;
     }
   }, []);
+  
+  const updateDeviceInRtdb = useCallback((data: Partial<Omit<DeviceState, 'settings'>>) => {
+    if (!deviceId || !database) return;
+    const dbRef = ref(database, `devices/${deviceId}`);
+    const payload = { ...data, lastUpdated: serverTimestamp() };
+    update(dbRef, payload).catch((err) => {
+        console.error("Failed to update device in RTDB:", err);
+        setError(err.message || "Failed to send command to device.");
+    });
+  }, [deviceId, database]);
 
   useEffect(() => {
-    if (device?.settings) {
+    if (device) {
       setLocalSettings(device.settings);
     }
   }, [device?.settings]);
@@ -152,7 +162,7 @@ export function useDevice(deviceId: string | null) {
       device.status !== "CANCELED" &&
       device.status !== "NOT_CONNECTED"
     ) {
-      const { startTime, duration } = device.currentStage;
+      const { startTime, duration, name } = device.currentStage;
       
       intervalRef.current = setInterval(() => {
         const now = Date.now();
@@ -168,24 +178,18 @@ export function useDevice(deviceId: string | null) {
         );
 
         if (remaining <= 0) {
-          clearCurrentInterval();
+            clearCurrentInterval();
+            // Transition to the next state when the current one is done
+            if (name === 'DISPENSING') {
+                updateDeviceInRtdb({ status: 'READY', currentStage: null });
+            }
         }
       }, 500); 
     }
 
     return () => clearCurrentInterval();
-  }, [device?.status, device?.currentStage, clearCurrentInterval]);
+  }, [device?.status, device?.currentStage, clearCurrentInterval, updateDeviceInRtdb]);
 
-
-  const updateDeviceInRtdb = (data: Partial<Omit<DeviceState, 'settings'>>) => {
-    if (!deviceId || !database) return;
-    const dbRef = ref(database, `devices/${deviceId}`);
-    const payload = { ...data, lastUpdated: serverTimestamp() };
-    update(dbRef, payload).catch((err) => {
-        console.error("Failed to update device in RTDB:", err);
-        setError(err.message || "Failed to send command to device.");
-    });
-  };
 
   const setDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
     const updatedSettings = { ...localSettings, ...newSettings };
