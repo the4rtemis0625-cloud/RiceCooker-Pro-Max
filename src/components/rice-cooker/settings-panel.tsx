@@ -152,7 +152,7 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
           <div className="flex items-center justify-between">
             <Label htmlFor="dispense-duration" className="flex items-center gap-2 text-lg">
               <Wheat className="h-5 w-5 text-primary/70" />
-              Dispense Duration
+              Dispense Rice
             </Label>
             <span className="font-mono text-lg">{dispenseDuration}s</span>
           </div>
