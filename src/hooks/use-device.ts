@@ -273,7 +273,7 @@ export function useDevice(deviceId: string | null) {
   const startDevice = () => {
     sendCommandObject({
       "command/add_water": true,
-      "command/dispense": false,
+      "command/dispense": true,
       "command/cook": false,
       "command/cancel": false,
       "settings/dispenseDuration": durations.dispenseTime,
