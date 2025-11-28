@@ -34,6 +34,7 @@ export interface DeviceState {
   settings: DeviceSettings;
   lastUpdated: number;
   queue?: string[]; // Field for sending commands
+  command?: 'start' | 'cook' | 'cancel' | null;
   currentAction?: 'idle' | 'dispense rice' | 'add water' | 'cook' | 'done' | 'canceled' | null;
   currentStage?: {
     name: "DISPENSING" | "WASHING" | "COOKING";
@@ -286,7 +287,7 @@ export function useDevice(deviceId: string | null) {
 
   const startDevice = () => {
     const currentAction = device?.currentAction;
-    if (currentAction === 'idle' || currentAction === 'done' || currentAction === 'canceled' || !currentAction) {
+    if (currentAction !== 'dispense rice' && currentAction !== 'add water' && currentAction !== 'cook') {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
       const command = {
@@ -299,7 +300,7 @@ export function useDevice(deviceId: string | null) {
 
   const cookDevice = () => {
     const currentAction = device?.currentAction;
-    if (currentAction === 'idle' || currentAction === 'done' || currentAction === 'canceled' || !currentAction) {
+    if (currentAction !== 'dispense rice' && currentAction !== 'add water' && currentAction !== 'cook') {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
       const command = {
