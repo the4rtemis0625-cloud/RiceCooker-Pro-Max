@@ -101,7 +101,7 @@ export function useDevice(deviceId: string | null) {
         if (err.code === 'permission-denied') {
             errorMessage = "Permission denied. You do not have access to this device's data.";
         } else if (err.code === 'unavailable' || (err.message && err.message.includes('offline'))) {
-            errorMessage = "Device is offline. Please check your internet connection or Firebase configuration."
+            errorMessage = "Device is offline or unreachable. Please check your internet connection and device ID."
         }
         setError(errorMessage);
         setDevice({ status: "NOT_CONNECTED", settings: device?.settings ?? defaultSettings, lastUpdated: Timestamp.now() });
@@ -113,7 +113,7 @@ export function useDevice(deviceId: string | null) {
         unsubscribe();
         clearCurrentInterval();
     };
-  }, [deviceId, clearCurrentInterval]);
+  }, [deviceId, clearCurrentInterval, device?.settings]);
 
   // Effect to handle timers and progress updates based on device state from Firestore
   useEffect(() => {

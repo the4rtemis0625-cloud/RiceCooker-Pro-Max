@@ -19,13 +19,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { auth, firestore } = getFirebase();
+    const { auth } = getFirebase();
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUser(user);
         sessionStorage.setItem("ricecooker-auth", "true");
         
         // Fetch user profile to get deviceId
+        const { firestore } = getFirebase();
         const userRef = doc(firestore, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
