@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getFirebase } from "@/firebase";
+import { useFirestore } from "@/firebase";
 import {
   doc,
   onSnapshot,
@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   Timestamp,
   DocumentData,
+  Firestore,
 } from "firebase/firestore";
 
 export type Status =
@@ -47,6 +48,7 @@ const defaultSettings: DeviceSettings = {
 };
 
 export function useDevice(deviceId: string | null) {
+  const firestore = useFirestore();
   const [device, setDevice] = useState<DeviceState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +62,11 @@ export function useDevice(deviceId: string | null) {
   }, []);
 
   useEffect(() => {
+    if (!firestore) {
+        setLoading(false);
+        return;
+    }
+
     if (!deviceId) {
       setDevice({ status: "NOT_CONNECTED", settings: defaultSettings, lastUpdated: Timestamp.now() });
       setLoading(false);
@@ -69,7 +76,6 @@ export function useDevice(deviceId: string | null) {
 
     setLoading(true);
     setError(null);
-    const { firestore } = getFirebase();
     const docRef = doc(firestore, "devices", deviceId);
 
     const unsubscribe = onSnapshot(
@@ -113,7 +119,7 @@ export function useDevice(deviceId: string | null) {
         unsubscribe();
         clearCurrentInterval();
     };
-  }, [deviceId, clearCurrentInterval, device?.settings]);
+  }, [deviceId, firestore, clearCurrentInterval, device?.settings]);
 
   // Effect to handle timers and progress updates based on device state from Firestore
   useEffect(() => {
@@ -144,8 +150,7 @@ export function useDevice(deviceId: string | null) {
 
 
   const updateDeviceInFirestore = async (data: Partial<DeviceState> | DocumentData) => {
-    if (!deviceId) return;
-    const { firestore } = getFirebase();
+    if (!deviceId || !firestore) return;
     const docRef = doc(firestore, "devices", deviceId);
     try {
       await setDoc(docRef, { ...data, lastUpdated: serverTimestamp() }, { merge: true });
@@ -155,16 +160,14 @@ export function useDevice(deviceId: string | null) {
     }
   };
 
-  const updateDeviceId = async (userId: string, newDeviceId: string | null) => {
-    if (!userId) return;
-    const { firestore } = getFirebase();
+  const updateDeviceIdInUserProfile = async (userId: string, newDeviceId: string | null) => {
+    if (!userId || !firestore) return;
     const userRef = doc(firestore, "users", userId);
     try {
       await updateDoc(userRef, { deviceId: newDeviceId });
     } catch (e: any) {
       console.error("Error updating user's deviceId:", e);
       setError(`Failed to save device ID: ${e.message}`);
-      // Optionally show a toast to the user
     }
   };
 
@@ -194,5 +197,5 @@ export function useDevice(deviceId: string | null) {
     }
   };
 
-  return { device, loading, error, setDurations, startDevice, cancelDevice, updateDeviceId };
+  return { device, loading, error, setDurations, startDevice, cancelDevice, updateDeviceId: updateDeviceIdInUserProfile };
 }

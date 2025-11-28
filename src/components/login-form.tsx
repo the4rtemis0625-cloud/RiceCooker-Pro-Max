@@ -6,7 +6,7 @@ import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getFirebase } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
@@ -16,33 +16,43 @@ import {
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
-const createUserProfile = async (user: User) => {
-    const { firestore } = getFirebase();
-    if (!user.email) return;
-
-    const userRef = doc(firestore, "users", user.uid);
-    try {
-        await setDoc(userRef, {
-            email: user.email,
-            createdAt: serverTimestamp(),
-            deviceId: null, // Initialize with no device
-        });
-    } catch (error) {
-        console.error("Error creating user profile:", error);
-        // We can optionally show a toast here, but for now, we'll log it
-    }
-}
-
 export function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const firestore = useFirestore();
+
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const createUserProfile = async (user: User) => {
+      if (!firestore || !user.email) return;
+
+      const userRef = doc(firestore, "users", user.uid);
+      try {
+          await setDoc(userRef, {
+              email: user.email,
+              createdAt: serverTimestamp(),
+              deviceId: null, // Initialize with no device
+          });
+      } catch (error) {
+          console.error("Error creating user profile:", error);
+          // We can optionally show a toast here, but for now, we'll log it
+      }
+  }
+
+
   const handleAuthAction = async () => {
-    const { auth } = getFirebase();
+    if (!auth) {
+        toast({
+            variant: "destructive",
+            title: "Authentication service not available.",
+            description: "Please try again in a moment.",
+        });
+        return;
+    }
 
     if (isSignUp) {
       if (password !== confirmPassword) {

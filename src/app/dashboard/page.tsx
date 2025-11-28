@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getFirebase } from "@/firebase";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { useAuth } from "@/firebase";
+import { User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { getFirebase } from "@/firebase"; // Keep for firestore instance for now
 import { ControlPanel } from "@/components/control-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -14,13 +15,16 @@ interface UserProfile {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const auth = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { auth } = getFirebase();
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (!auth) {
+        return;
+    }
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setUser(user);
         sessionStorage.setItem("ricecooker-auth", "true");
@@ -34,7 +38,6 @@ export default function DashboardPage() {
             const userProfile = userSnap.data() as UserProfile;
             setDeviceId(userProfile.deviceId);
         } else {
-            // This case should ideally not happen if profile is created on signup
             console.log("No user profile found!");
             setDeviceId(null);
         }
@@ -49,7 +52,7 @@ export default function DashboardPage() {
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, [auth, router]);
 
   if (loading) {
     return (
