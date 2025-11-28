@@ -39,7 +39,7 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
 
   return (
     <Card className={cn(
-        "text-center border-primary/20",
+        "text-center border-primary/20 relative overflow-hidden",
         (isRunning || isConnecting) && "bg-accent border-accent shadow-lg",
         !isConnected && "bg-muted/50"
       )}>
@@ -52,7 +52,30 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex items-center justify-center gap-4">
+
+        {/* Animation Layer */}
+        <div className="absolute inset-0 z-0 opacity-20">
+          {safeStatus === "WASHING" && (
+            <>
+              <Droplets className="absolute h-6 w-6 top-0 -translate-y-full animate-fall" style={{ left: '10%', animationDelay: '0s' }} />
+              <Droplets className="absolute h-6 w-6 top-0 -translate-y-full animate-fall" style={{ left: '30%', animationDelay: '0.5s' }} />
+              <Droplets className="absolute h-6 w-6 top-0 -translate-y-full animate-fall" style={{ left: '50%', animationDelay: '0.2s' }} />
+              <Droplets className="absolute h-6 w-6 top-0 -translate-y-full animate-fall" style={{ left: '70%', animationDelay: '0.8s' }} />
+              <Droplets className="absolute h-6 w-6 top-0 -translate-y-full animate-fall" style={{ left: '90%', animationDelay: '0.4s' }} />
+            </>
+          )}
+          {safeStatus === "DISPENSING" && (
+            <>
+              <Wheat className="absolute h-6 w-6 top-0 -translate-y-full animate-fall" style={{ left: '15%', animationDelay: '0.1s' }} />
+              <Wheat className="absolute h-6 w-6 top-0 -translate-y-full animate-fall" style={{ left: '35%', animationDelay: '0.6s' }} />
+              <Wheat className="absolute h-6 w-6 top-0 -translate-y-full animate-fall" style={{ left: '55%', animationDelay: '0.3s' }} />
+              <Wheat className="absolute h-6 w-6 top-0 -translate-y-full animate-fall" style={{ left: '75%', animationDelay: '0.9s' }} />
+              <Wheat className="absolute h-6 w-6 top-0 -translate-y-full animate-fall" style={{ left: '95%', animationDelay: '0.5s' }} />
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center justify-center gap-4 relative z-10">
           <Icon className={cn("h-8 w-8", color, (isRunning || isConnecting) && "animate-spin")} />
           <h2 className={cn("text-3xl font-bold font-mono tracking-wider", (isRunning || isConnecting) ? 'text-accent-foreground' : 'text-foreground')}>
             {text}
@@ -60,7 +83,7 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
           </h2>
         </div>
         
-        <div className="h-16">
+        <div className="h-16 relative z-10">
           {isRunning && (
             <div className="space-y-2">
               <p className={cn("font-mono text-5xl font-bold", isRunning ? 'text-accent-foreground' : 'text-foreground')}>

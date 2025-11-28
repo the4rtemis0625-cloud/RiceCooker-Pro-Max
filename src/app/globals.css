@@ -12,6 +12,15 @@
   animation: blink 1s step-end infinite;
 }
 
+@keyframes fall {
+  from {
+    transform: translateY(-100%) rotate(-30deg);
+  }
+  to {
+    transform: translateY(250px) rotate(30deg);
+  }
+}
+
 @layer base {
   :root {
     --background: 40 50% 98%; /* #fdfaf7 */
@@ -91,5 +100,11 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .animate-fall {
+    animation: fall 2s linear infinite;
   }
 }
