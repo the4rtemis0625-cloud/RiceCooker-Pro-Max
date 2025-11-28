@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "device": {
@@ -5,6 +6,24 @@
       "description": "Represents a single rice cooker device and its state.",
       "type": "object",
       "properties": {
+        "command": {
+          "type": "object",
+          "description": "Object to hold command flags for the device.",
+          "properties": {
+            "dispense": {
+              "type": "boolean",
+              "description": "Set to true to start the dispense and wash cycle."
+            },
+            "cook": {
+              "type": "boolean",
+              "description": "Set to true to start the cooking cycle."
+            },
+            "cancel": {
+              "type": "boolean",
+              "description": "Set to true to cancel any ongoing operation."
+            }
+          }
+        },
         "currentAction": {
           "type": "string",
           "description": "The specific action the device is currently performing.",

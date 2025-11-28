@@ -32,7 +32,11 @@ export interface DeviceState {
   settings: DeviceSettings;
   lastUpdated: number;
   queue?: string[];
-  command?: 'start' | 'cook' | 'cancel' | null;
+  command?: {
+    dispense?: boolean;
+    cook?: boolean;
+    cancel?: boolean;
+  } | null;
   currentAction?: 'idle' | 'dispense rice' | 'add water' | 'cook' | 'done' | 'canceled' | null;
   currentStage?: {
     name: "DISPENSING" | "WASHING" | "COOKING";
@@ -164,7 +168,7 @@ export function useDevice(deviceId: string | null) {
       off(dbRef, "value", listener);
       clearCurrentInterval();
     };
-  }, [deviceId, database, clearCurrentInterval]);
+  }, [deviceId, database, clearCurrentInterval, device?.settings]);
 
   useEffect(() => {
     clearCurrentInterval();
@@ -196,29 +200,31 @@ export function useDevice(deviceId: string | null) {
     return () => clearCurrentInterval();
   }, [device?.status, device?.currentStage, clearCurrentInterval]);
 
-  const sendCommandObject = useCallback((commandData: object) => {
+  const sendCommandObject = (commandData: object) => {
     if (!deviceId || !database) return;
     const deviceRef = ref(database, `devices/${deviceId}`);
     update(deviceRef, commandData).catch((err) => {
       console.error("Failed to send command:", err);
       setError(err.message || "Failed to send command to device.");
     });
-  }, [deviceId, database]);
+  };
 
-  const setDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
-      if (!deviceId || !database) return;
-      const dbRef = ref(database, `devices/${deviceId}/settings`);
-      update(dbRef, newSettings).catch((err) => {
-        console.error("Failed to update settings in RTDB:", err);
-        setError(err.message || "Failed to save settings.");
-      });
-  }, [deviceId, database]);
+  const setDurations = (newSettings: Partial<DeviceSettings>) => {
+    if (!deviceId || !database) return;
+    const dbRef = ref(database, `devices/${deviceId}/settings`);
+    update(dbRef, newSettings).catch((err) => {
+      console.error("Failed to update settings in RTDB:", err);
+      setError(err.message || "Failed to save settings.");
+    });
+  };
 
   const startDevice = () => {
     const currentAction = device?.currentAction;
     if (currentAction === 'idle' || currentAction === 'done' || currentAction === 'canceled' || !currentAction) {
         sendCommandObject({
-            command: "start",
+            "command/dispense": true,
+            "command/cook": false,
+            "command/cancel": false,
             queue: ["add water", "dispense rice"]
         });
     }
@@ -228,7 +234,9 @@ export function useDevice(deviceId: string | null) {
     const currentAction = device?.currentAction;
     if (currentAction === 'idle' || currentAction === 'done' || currentAction === 'canceled' || !currentAction) {
       sendCommandObject({
-        command: "cook",
+        "command/dispense": false,
+        "command/cook": true,
+        "command/cancel": false,
         queue: ["cook"]
       });
     }
@@ -242,7 +250,9 @@ export function useDevice(deviceId: string | null) {
       currentAction === "cook"
     ) {
       sendCommandObject({
-        command: "cancel",
+        "command/dispense": false,
+        "command/cook": false,
+        "command/cancel": true,
         queue: []
       });
     }
