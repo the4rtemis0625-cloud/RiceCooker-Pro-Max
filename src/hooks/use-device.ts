@@ -56,6 +56,7 @@ export function useDevice(deviceId: string | null) {
   
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const commandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Function to send a command to the RTDB
   const sendCommand = useCallback((command: string) => {
@@ -108,8 +109,14 @@ export function useDevice(deviceId: string | null) {
             dispenseTime: typeof data.settings?.dispenseTime === 'number' ? data.settings.dispenseTime : defaultSettings.dispenseTime,
             cookTime: typeof data.settings?.cookTime === 'number' ? data.settings.cookTime : defaultSettings.cookTime,
           };
+          
+          let newStatus = data.status;
+          if (data.status === "Online – Queue Ready" as any || data.status === "Online - Queue Ready" as any) {
+            newStatus = "READY";
+          }
 
-          setDevice({ ...data, settings: saneSettings });
+
+          setDevice({ ...data, status: newStatus, settings: saneSettings });
 
         } else {
           const defaultState: Partial<DeviceState> & { settings: DeviceSettings } = {
@@ -150,6 +157,9 @@ export function useDevice(deviceId: string | null) {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
+      if (commandTimeoutRef.current) {
+        clearTimeout(commandTimeoutRef.current);
+      }
     };
   }, [deviceId, database, clearCurrentInterval]);
 
@@ -161,7 +171,8 @@ export function useDevice(deviceId: string | null) {
       device.status !== "READY" &&
       device.status !== "DONE" &&
       device.status !== "CANCELED" &&
-      device.status !== "NOT_CONNECTED"
+      device.status !== "NOT_CONNECTED" &&
+      device.status !== "SENDING_COMMAND"
     ) {
       const { startTime, duration } = device.currentStage;
       
@@ -178,6 +189,12 @@ export function useDevice(deviceId: string | null) {
         }
       }, 500); 
     }
+
+    if (device?.status !== "SENDING_COMMAND" && commandTimeoutRef.current) {
+        clearTimeout(commandTimeoutRef.current);
+        commandTimeoutRef.current = null;
+    }
+
 
     return () => clearCurrentInterval();
   }, [device?.status, device?.currentStage, clearCurrentInterval]);
@@ -204,10 +221,25 @@ export function useDevice(deviceId: string | null) {
     }, 500);
   }, [deviceId, database, device?.settings]);
 
+  const startCommandTimeout = () => {
+    if (commandTimeoutRef.current) {
+        clearTimeout(commandTimeoutRef.current);
+    }
+    commandTimeoutRef.current = setTimeout(() => {
+        setDevice((prev) => {
+            if (prev?.status === "SENDING_COMMAND") {
+                setError("Device did not respond in time. Please try again.");
+                return { ...prev, status: "READY" };
+            }
+            return prev;
+        });
+    }, 10000); // 10 seconds
+  };
 
   const startDevice = () => {
     if (device && (device.status === 'READY' || device.status === 'DONE' || device.status === 'CANCELED')) {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
+      startCommandTimeout();
       sendCommand("start");
     }
   };
@@ -215,6 +247,7 @@ export function useDevice(deviceId: string | null) {
   const cookDevice = () => {
     if (device && (device.status === 'READY' || device.status === 'DONE' || device.status === 'CANCELED')) {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
+      startCommandTimeout();
       sendCommand("cook");
     }
   };
@@ -227,6 +260,7 @@ export function useDevice(deviceId: string | null) {
         device.status === "COOKING")
     ) {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
+      startCommandTimeout();
       sendCommand("stop");
     }
   };
@@ -241,3 +275,5 @@ export function useDevice(deviceId: string | null) {
     cancelDevice,
   };
 }
+
+    

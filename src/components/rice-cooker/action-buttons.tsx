@@ -18,7 +18,7 @@ export function ActionButtons({ onStart, onCook, onCancel, isRunning, isReady, i
     <div className="flex flex-col sm:flex-row gap-4 mt-8">
       <Button
         onClick={onStart}
-        disabled={isRunning || isDisabled}
+        disabled={isDisabled || isRunning}
         size="lg"
         className="w-full text-lg font-bold tracking-wider"
       >
@@ -27,7 +27,7 @@ export function ActionButtons({ onStart, onCook, onCancel, isRunning, isReady, i
       </Button>
       <Button
         onClick={onCook}
-        disabled={isRunning || isDisabled}
+        disabled={isDisabled || isRunning}
         size="lg"
         className="w-full text-lg font-bold tracking-wider"
       >
@@ -47,3 +47,5 @@ export function ActionButtons({ onStart, onCook, onCancel, isRunning, isReady, i
     </div>
   );
 }
+
+    

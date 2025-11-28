@@ -66,9 +66,9 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   }, [error, toast]);
   
   const currentDevice = device ?? { status: 'NOT_CONNECTED' } as Partial<DeviceState>;
-  const isRunning = currentDevice.status === "DISPENSING" || currentDevice.status === "WASHING" || currentDevice.status === "COOKING";
+  const isRunning = currentDevice.status === "DISPENSING" || currentDevice.status === "WASHING" || currentDevice.status === "COOKING" || currentDevice.status === 'SENDING_COMMAND';
   const isConnected = currentDevice.status !== 'NOT_CONNECTED';
-  const isReady = !isRunning && isConnected;
+  const isReady = !isRunning && isConnected && (currentDevice.status === 'READY' || currentDevice.status === 'DONE' || currentDevice.status === 'CANCELED');
 
 
   if (loading && deviceId) {
@@ -109,9 +109,11 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
               onCancel={cancelDevice}
               isRunning={isRunning}
               isReady={isReady}
-              isDisabled={!isConnected}
+              isDisabled={!isConnected || !isReady}
             />
         </div>
     </div>
   );
 }
+
+    
