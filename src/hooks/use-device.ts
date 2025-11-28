@@ -283,7 +283,7 @@ export function useDevice(deviceId: string | null) {
             "command/cancel": false,
             "settings/dispenseDuration": durations.dispenseTime,
             "settings/washDuration": durations.pumpTime,
-            queue: ["dispense rice", "add water"]
+            queue: ["add water", "dispense rice"]
         });
     }
   };
