@@ -34,6 +34,7 @@ export interface DeviceState {
   queue?: string[];
   command?: {
     dispense?: boolean;
+    add_water?: boolean;
     cook?: boolean;
     cancel?: boolean;
   } | null;
@@ -166,7 +167,7 @@ export function useDevice(deviceId: string | null) {
             settings: defaultSettings,
             lastUpdated: serverTimestamp(),
             currentAction: "idle",
-            command: { dispense: false, cook: false, cancel: false }
+            command: { dispense: false, cook: false, cancel: false, add_water: false }
           };
           set(dbRef, defaultState)
             .then(() => {
@@ -270,6 +271,7 @@ export function useDevice(deviceId: string | null) {
             "command/dispense": true,
             "command/cook": false,
             "command/cancel": false,
+            "command/add_water": false,
             "settings/dispenseDuration": durations.dispenseTime,
             "settings/washDuration": durations.pumpTime,
             queue: ["add water", "dispense rice"]
@@ -284,6 +286,7 @@ export function useDevice(deviceId: string | null) {
         "command/cook": true,
         "command/dispense": false,
         "command/cancel": false,
+        "command/add_water": false,
         "settings/cookDuration": durations.cookTime * 60, // convert minutes to seconds
         queue: ["cook"]
       });
@@ -301,6 +304,7 @@ export function useDevice(deviceId: string | null) {
         "command/cancel": true,
         "command/dispense": false,
         "command/cook": false,
+        "command/add_water": false,
         queue: []
       });
     }
