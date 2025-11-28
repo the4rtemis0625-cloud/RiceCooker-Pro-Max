@@ -1,10 +1,10 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { FirebaseApp } from 'firebase/app';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { FirebaseApp, initializeApp } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
-import { initializeFirebaseApp } from './config';
+import { firebaseConfig } from './config';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 interface FirebaseContextValue {
@@ -19,12 +19,12 @@ const FirebaseContext = createContext<FirebaseContextValue>({
   firestore: null,
 });
 
-export function FirebaseProvider({ children }: { children: React.ReactNode }) {
+export function FirebaseProvider({ children }: { children: ReactNode }) {
   const [services, setServices] = useState<FirebaseContextValue>({ app: null, auth: null, firestore: null });
 
   useEffect(() => {
     // This effect runs only on the client, ensuring services are not initialized on the server.
-    const app = initializeFirebaseApp();
+    const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const firestore = getFirestore(app);
     setServices({ app, auth, firestore });
