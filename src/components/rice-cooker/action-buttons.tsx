@@ -9,15 +9,16 @@ type ActionButtonsProps = {
   onCook: () => void;
   onCancel: () => void;
   isRunning: boolean;
-  isDisabled: boolean;
+  isStartCookDisabled: boolean;
+  isConnected: boolean;
 };
 
-export function ActionButtons({ onStart, onCook, onCancel, isRunning, isDisabled }: ActionButtonsProps) {
+export function ActionButtons({ onStart, onCook, onCancel, isRunning, isStartCookDisabled, isConnected }: ActionButtonsProps) {
   return (
     <div className="flex flex-col sm:flex-row gap-4 mt-8">
       <Button
         onClick={onStart}
-        disabled={isDisabled}
+        disabled={isStartCookDisabled}
         size="lg"
         className="w-full text-lg font-bold tracking-wider"
       >
@@ -26,7 +27,7 @@ export function ActionButtons({ onStart, onCook, onCancel, isRunning, isDisabled
       </Button>
       <Button
         onClick={onCook}
-        disabled={isDisabled}
+        disabled={isStartCookDisabled}
         size="lg"
         className="w-full text-lg font-bold tracking-wider"
       >
@@ -35,7 +36,7 @@ export function ActionButtons({ onStart, onCook, onCancel, isRunning, isDisabled
       </Button>
       <Button
         onClick={onCancel}
-        disabled={!isRunning || isDisabled}
+        disabled={!isRunning}
         size="lg"
         className="w-full text-lg font-bold tracking-wider"
         variant="destructive"

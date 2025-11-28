@@ -70,7 +70,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const isConnected = currentDevice.status !== 'NOT_CONNECTED';
   const isRunning = currentDevice.status === "DISPENSING" || currentDevice.status === "WASHING" || currentDevice.status === "COOKING";
   
-  const areButtonsDisabled = !isConnected || isRunning;
+  const areActionButtonsDisabled = !isConnected || isRunning;
 
   if (loading && deviceId) {
     return (
@@ -109,7 +109,8 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
               onCook={cookDevice}
               onCancel={cancelDevice}
               isRunning={isRunning}
-              isDisabled={areButtonsDisabled}
+              isStartCookDisabled={areActionButtonsDisabled}
+              isConnected={isConnected}
             />
         </div>
     </div>
