@@ -32,7 +32,7 @@ export interface DeviceState {
   settings: DeviceSettings;
   lastUpdated: Timestamp;
   currentStage?: {
-    name: Status;
+    name: "DISPENSING" | "WASHING" | "COOKING";
     startTime: Timestamp;
     duration: number;
   };
@@ -61,7 +61,7 @@ export function useDevice(deviceId: string | null) {
 
   useEffect(() => {
     if (!deviceId) {
-      setDevice(null);
+      setDevice({ status: "NOT_CONNECTED", settings: defaultSettings, lastUpdated: Timestamp.now() });
       setLoading(false);
       clearCurrentInterval();
       return;
@@ -89,6 +89,7 @@ export function useDevice(deviceId: string | null) {
           setDoc(docRef, defaultState).catch((e) => {
              console.error("Error creating device document:", e);
              setError(`Could not initialize device. Please check permissions. Details: ${e.message}`);
+             setDevice({ status: "NOT_CONNECTED", settings: defaultSettings, lastUpdated: Timestamp.now() });
           });
           setDevice(defaultState);
         }
@@ -99,11 +100,11 @@ export function useDevice(deviceId: string | null) {
         let errorMessage = "Could not connect to device. Check the device ID and your connection.";
         if (err.code === 'permission-denied') {
             errorMessage = "Permission denied. You do not have access to this device's data.";
-        } else if (err.message.includes('offline')) {
-            errorMessage = "The app is offline. Please check your internet connection or Firebase configuration."
+        } else if (err.code === 'unavailable' || (err.message && err.message.includes('offline'))) {
+            errorMessage = "Device is offline. Please check your internet connection or Firebase configuration."
         }
         setError(errorMessage);
-        setDevice(null);
+        setDevice({ status: "NOT_CONNECTED", settings: device?.settings ?? defaultSettings, lastUpdated: Timestamp.now() });
         setLoading(false);
       }
     );
@@ -176,7 +177,14 @@ export function useDevice(deviceId: string | null) {
 
   const startDevice = () => {
     if (device && (device.status === 'READY' || device.status === 'DONE' || device.status === 'CANCELED')) {
-        updateDeviceInFirestore({ status: 'DISPENSING' });
+        updateDeviceInFirestore({ 
+          status: 'DISPENSING',
+          currentStage: {
+            name: 'DISPENSING',
+            startTime: serverTimestamp(),
+            duration: device.settings.dispenseDuration
+          }
+        });
     }
   };
 

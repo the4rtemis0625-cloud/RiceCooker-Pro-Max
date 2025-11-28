@@ -6,7 +6,7 @@ import { SettingsPanel } from "./rice-cooker/settings-panel";
 import { StatusDisplay } from "./rice-cooker/status-display";
 import { DeviceConnection } from "./rice-cooker/device-connection";
 import { cn } from "@/lib/utils";
-import { useDevice, type Status, type DeviceSettings } from "@/hooks/use-device";
+import { useDevice, type DeviceState } from "@/hooks/use-device";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,8 +32,7 @@ export function ControlPanel({ initialDeviceId, userId }: ControlPanelProps) {
     if (device && (device.status === 'DISPENSING' || device.status === 'WASHING' || device.status === 'COOKING')) {
         cancelDevice();
     }
-    // This doesn't actually "disconnect" in the new model, but allows changing the device
-    // For this app, we'll treat it as a way to clear the device for a new one.
+    // This allows changing the device by clearing the association in the user's profile.
     updateDeviceId(userId, null);
     setDeviceId(null);
   };
@@ -48,12 +47,12 @@ export function ControlPanel({ initialDeviceId, userId }: ControlPanelProps) {
     }
   }, [error, toast]);
   
-  const status: Status = device?.status ?? (deviceId ? 'READY' : 'NOT_CONNECTED');
-  const isRunning = status === "DISPENSING" || status === "WASHING" || status === "COOKING";
-  const isConnected = !!deviceId;
+  const currentDevice = device ?? { status: 'NOT_CONNECTED' } as DeviceState;
+  const isRunning = currentDevice.status === "DISPENSING" || currentDevice.status === "WASHING" || currentDevice.status === "COOKING";
+  const isConnected = currentDevice.status !== 'NOT_CONNECTED';
 
 
-  if (loading && isConnected) {
+  if (loading && deviceId) {
     return (
         <div className="w-full max-w-2xl space-y-8">
             <Skeleton className="h-32 w-full" />
@@ -74,16 +73,16 @@ export function ControlPanel({ initialDeviceId, userId }: ControlPanelProps) {
         />
         
         <StatusDisplay
-            status={status}
-            timeRemaining={device?.timeRemaining ?? 0}
-            progress={device?.progress ?? 0}
+            status={currentDevice.status}
+            timeRemaining={currentDevice.timeRemaining ?? 0}
+            progress={currentDevice.progress ?? 0}
             deviceId={deviceId ?? ""}
         />
 
         <div className={cn(!isConnected && "opacity-50 pointer-events-none")}>
             <SettingsPanel
             durations={
-                device?.settings ?? {
+                currentDevice.settings ?? {
                 dispenseDuration: 5,
                 washDuration: 15,
                 cookDuration: 30,
@@ -96,7 +95,7 @@ export function ControlPanel({ initialDeviceId, userId }: ControlPanelProps) {
             onStart={startDevice}
             onCancel={cancelDevice}
             isRunning={isRunning}
-            isDisabled={!isConnected || status === 'CANCELED'}
+            isDisabled={!isConnected || currentDevice.status === 'CANCELED'}
             />
         </div>
     </div>
