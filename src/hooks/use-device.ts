@@ -1,16 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useDatabase } from "@/firebase";
 import {
   doc,
-  onSnapshot,
   setDoc,
-  updateDoc,
   serverTimestamp,
   Timestamp,
   DocumentData,
 } from "firebase/firestore";
+import { ref, onValue, off } from "firebase/database";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 
@@ -30,13 +29,24 @@ export interface DeviceSettings {
   cookDuration: number;
 }
 
+// Timestamps from Realtime DB can be just numbers
+type Timestampish = Timestamp | number;
+
+function toTimestamp(ts: Timestampish | undefined): Timestamp | null {
+    if (!ts) return null;
+    if (ts instanceof Timestamp) return ts;
+    // Assume number is millis since epoch
+    if (typeof ts === 'number') return new Timestamp(ts / 1000, 0);
+    return null;
+}
+
 export interface DeviceState {
   status: Status;
   settings: DeviceSettings;
-  lastUpdated: Timestamp;
+  lastUpdated: Timestampish;
   currentStage?: {
     name: "DISPENSING" | "WASHING" | "COOKING";
-    startTime: Timestamp;
+    startTime: Timestampish;
     duration: number;
   };
   timeRemaining?: number;
@@ -51,6 +61,7 @@ const defaultSettings: DeviceSettings = {
 
 export function useDevice(deviceId: string | null) {
   const firestore = useFirestore();
+  const database = useDatabase();
   const [device, setDevice] = useState<DeviceState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,13 +75,13 @@ export function useDevice(deviceId: string | null) {
   }, []);
 
   useEffect(() => {
-    if (!firestore) {
+    if (!database) {
         setLoading(false);
         return;
     }
 
     if (!deviceId) {
-      setDevice({ status: "NOT_CONNECTED", settings: defaultSettings, lastUpdated: Timestamp.now() });
+      setDevice({ status: "NOT_CONNECTED", settings: defaultSettings, lastUpdated: Date.now() });
       setLoading(false);
       clearCurrentInterval();
       return;
@@ -78,69 +89,62 @@ export function useDevice(deviceId: string | null) {
 
     setLoading(true);
     setError(null);
-    const docRef = doc(firestore, "devices", deviceId);
-    
-    const defaultState: DeviceState = {
-        status: "READY",
-        settings: defaultSettings,
-        lastUpdated: Timestamp.now(),
-    };
+    const dbRef = ref(database, `devices/${deviceId}`);
 
-    const unsubscribe = onSnapshot(
-      docRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data() as DeviceState;
+    const listener = onValue(
+      dbRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val() as DeviceState;
           setDevice(data);
           setError(null);
         } else {
-          setDoc(docRef, defaultState)
-            .catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({
-                    path: docRef.path,
-                    operation: 'create',
-                    requestResourceData: defaultState,
-                } satisfies SecurityRuleContext);
-                errorEmitter.emit('permission-error', permissionError);
-             });
-          setDevice(defaultState);
+            // If it doesn't exist in RTDB, we check firestore to create it
+            // This is part of the hybrid approach
+            const docRef = doc(firestore!, "devices", deviceId);
+            const defaultState: DeviceState = {
+                status: "READY",
+                settings: defaultSettings,
+                lastUpdated: serverTimestamp() as any, // RTDB will convert this
+            };
+            setDoc(docRef, defaultState as any)
+                .then(() => setDevice(defaultState))
+                .catch(async (serverError) => {
+                    const permissionError = new FirestorePermissionError({
+                        path: docRef.path,
+                        operation: 'create',
+                        requestResourceData: defaultState,
+                    } satisfies SecurityRuleContext);
+                    errorEmitter.emit('permission-error', permissionError);
+                });
         }
         setLoading(false);
       },
-      async (err: any) => {
-        if (err.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: docRef.path,
-                operation: 'get',
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
-        }
-
+      (err: any) => {
+        console.error(err);
         let errorMessage = "Could not connect to device. Check the device ID and your connection.";
-        if (err.code === 'permission-denied') {
+        if (err.code === 'PERMISSION_DENIED') {
             errorMessage = "Permission denied. You do not have access to this device's data.";
-        } else if (err.code === 'unavailable' || (err.message && err.message.includes('offline'))) {
-            errorMessage = "Device is offline or unreachable. Please check your internet connection and device ID."
         }
         setError(errorMessage);
-        setDevice({ status: "NOT_CONNECTED", settings: device?.settings ?? defaultSettings, lastUpdated: Timestamp.now() });
+        setDevice({ status: "NOT_CONNECTED", settings: device?.settings ?? defaultSettings, lastUpdated: Date.now() });
         setLoading(false);
       }
     );
 
     return () => {
-        unsubscribe();
+        off(dbRef, 'value', listener);
         clearCurrentInterval();
     };
-  }, [deviceId, firestore, clearCurrentInterval, device?.settings]);
+  }, [deviceId, database, firestore, clearCurrentInterval, device?.settings]);
 
-  // Effect to handle timers and progress updates based on device state from Firestore
+  // Effect to handle timers and progress updates based on device state from RTDB
   useEffect(() => {
     clearCurrentInterval();
 
     if (device?.currentStage?.startTime && device.status !== 'READY' && device.status !== 'DONE' && device.status !== 'CANCELED' && device.status !== 'NOT_CONNECTED') {
       const { startTime, duration } = device.currentStage;
-      const startMillis = startTime.toMillis();
+      const startMillis = (startTime instanceof Timestamp) ? startTime.toMillis() : startTime;
       
       intervalRef.current = setInterval(() => {
         const now = Date.now();
@@ -148,7 +152,6 @@ export function useDevice(deviceId: string | null) {
         const remaining = Math.max(0, duration - elapsed);
         const progress = Math.min(100, (elapsed / duration) * 100);
 
-        // This is a local update for smoother UI. Firestore is the source of truth.
         setDevice(prev => prev ? { ...prev, timeRemaining: Math.round(remaining), progress } : null);
 
         if (remaining <= 0) {
@@ -157,11 +160,11 @@ export function useDevice(deviceId: string | null) {
       }, 500);
     }
     
-    // Cleanup interval on component unmount or when device state changes
     return () => clearCurrentInterval();
   }, [device, clearCurrentInterval]);
 
 
+  // Writes still go to Firestore
   const updateDeviceInFirestore = (data: Partial<DeviceState> | DocumentData) => {
     if (!deviceId || !firestore) return;
     const docRef = doc(firestore, "devices", deviceId);
@@ -201,9 +204,21 @@ export function useDevice(deviceId: string | null) {
 
   const cancelDevice = () => {
     if (device && (device.status === 'DISPENSING' || device.status === 'WASHING' || device.status === 'COOKING')) {
-        updateDeviceInFirestore({ status: 'CANCELED', currentStage: undefined });
+        updateDeviceInFirestore({ status: 'CANCELED', currentStage: null });
     }
   };
 
-  return { device, loading, error, setDurations, startDevice, cancelDevice };
+  // Convert RTDB timestamps to Firestore Timestamps for the UI
+  const deviceWithTimestamps: DeviceState | null = device ? {
+      ...device,
+      lastUpdated: toTimestamp(device.lastUpdated) || Timestamp.now(),
+      currentStage: device.currentStage ? {
+          ...device.currentStage,
+          startTime: toTimestamp(device.currentStage.startTime) || Timestamp.now()
+      } : undefined
+  } : null;
+
+  const finalDevice = deviceWithTimestamps as (DeviceState & {lastUpdated: Timestamp, currentStage?: {startTime: Timestamp}}) | null;
+
+  return { device: finalDevice, loading, error, setDurations, startDevice, cancelDevice };
 }

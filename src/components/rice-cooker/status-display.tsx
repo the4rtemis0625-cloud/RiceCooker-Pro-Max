@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { CheckCircle, Loader, XCircle, Thermometer, Wheat, Droplets, Utensils, WifiOff } from "lucide-react";
+import { Timestamp } from "firebase/firestore";
 
 const statusConfig = {
   READY: { text: "SYSTEM READY", icon: CheckCircle, color: "text-primary" },
