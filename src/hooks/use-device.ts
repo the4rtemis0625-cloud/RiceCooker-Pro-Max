@@ -68,9 +68,10 @@ export function useDevice(deviceId: string | null) {
     }
   }, []);
 
-  const handleSetDurations = (newSettings: Partial<DeviceSettings>) => {
+  const handleSetDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
     if (!deviceId || !database) return;
     
+    // Update local state optimistically for instant UI feedback
     setDurations(prev => ({...prev, ...newSettings}));
 
     const dbRef = ref(database, `devices/${deviceId}/settings`);
@@ -78,7 +79,7 @@ export function useDevice(deviceId: string | null) {
       console.error("Failed to update settings in RTDB:", err);
       setError(err.message || "Failed to save settings.");
     });
-  };
+  }, [deviceId, database]);
 
   useEffect(() => {
     if (!database) {
@@ -175,7 +176,7 @@ export function useDevice(deviceId: string | null) {
         setDevice({
           status: "NOT_CONNECTED",
           lastUpdated: Date.now(),
-        });
+        } as DeviceState);
         setDurations(defaultSettings);
         setLoading(false);
       }
