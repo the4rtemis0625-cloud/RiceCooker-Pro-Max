@@ -4,19 +4,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can read and update their own profile.
+    // Users can read, create and update their own profile.
     match /users/{userId} {
-      allow read, update: if request.auth != null && request.auth.uid == userId;
-      // Allow creation of a user profile only if the profile belongs to the user creating it.
-      allow create: if request.auth != null && request.auth.uid == userId;
+      allow read, update, create: if request.auth != null && request.auth.uid == userId;
     }
 
-    // A user can read/write to a device document if their user profile's deviceId matches,
-    // OR if they are setting up their first device (deviceId is null).
+    // A user can read/write to a device document if their user profile's deviceId matches.
     match /devices/{deviceId} {
       allow read, write: if request.auth != null && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.deviceId == deviceId || 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.deviceId == null);
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.deviceId == deviceId;
     }
   }
 }
