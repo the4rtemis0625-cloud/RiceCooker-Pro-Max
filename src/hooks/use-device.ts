@@ -109,6 +109,9 @@ export function useDevice(deviceId: string | null) {
         if (snapshot.exists()) {
           const data = snapshot.val() as DeviceState;
           setDevice(data);
+          if (data.settings) {
+            setLocalSettings(data.settings);
+          }
           setError(null);
         } else {
           const defaultState: Omit<DeviceState, 'timeRemaining' | 'progress' | 'currentStage'> = {
@@ -117,7 +120,7 @@ export function useDevice(deviceId: string | null) {
             lastUpdated: serverTimestamp() as any,
           };
           set(dbRef, defaultState)
-            .then(() => setDevice({ ...defaultState, lastUpdated: Date.now() }))
+            .then(() => setDevice({ ...defaultState, lastUpdated: Date.now(), settings: defaultSettings }))
             .catch((err) => {
                 console.error("Failed to create device state in RTDB:", err);
                 setError(err.message || "Could not initialize device state.");
@@ -179,8 +182,16 @@ export function useDevice(deviceId: string | null) {
 
         if (remaining <= 0) {
             clearCurrentInterval();
-            // Transition to the next state when the current one is done
             if (name === 'DISPENSING') {
+                updateDeviceInRtdb({
+                    status: 'WASHING',
+                    currentStage: {
+                        name: 'WASHING',
+                        startTime: serverTimestamp() as any,
+                        duration: localSettings.washDuration,
+                    },
+                });
+            } else if (name === 'WASHING') {
                 updateDeviceInRtdb({ status: 'READY', currentStage: null });
             }
         }
@@ -188,7 +199,7 @@ export function useDevice(deviceId: string | null) {
     }
 
     return () => clearCurrentInterval();
-  }, [device?.status, device?.currentStage, clearCurrentInterval, updateDeviceInRtdb]);
+  }, [device?.status, device?.currentStage, clearCurrentInterval, updateDeviceInRtdb, localSettings.washDuration]);
 
 
   const setDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
@@ -214,8 +225,7 @@ export function useDevice(deviceId: string | null) {
     if (
       device &&
       (device.status === "READY" ||
-        device.status === "DONE" ||
-        device.status === "CANCELED")
+        device.status === "DONE")
     ) {
       updateDeviceInRtdb({
         status: "DISPENSING",
