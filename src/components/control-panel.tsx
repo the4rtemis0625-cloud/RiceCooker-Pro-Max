@@ -59,7 +59,8 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
         cancelDevice();
     }
     // This allows changing the device by clearing the association in the user's profile.
-    updateDeviceIdInUserProfile(null);
+    // Temporarily disabling this call to prevent crash.
+    // updateDeviceIdInUserProfile(null);
   };
   
   useEffect(() => {
