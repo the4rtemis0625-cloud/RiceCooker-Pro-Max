@@ -148,17 +148,22 @@ export function useDevice(deviceId: string | null) {
               break;
           }
           
-          if(device?.status === 'SENDING_COMMAND' && newStatus === 'READY') {
-            // Keep showing sending command until device actually changes state
+          const currentStatus = device?.status;
+          
+          if(currentStatus === 'SENDING_COMMAND' && (newStatus === 'READY' || newStatus === 'DONE' || newStatus === 'CANCELED')) {
+             // If we just sent a command, wait for the device to actually change its state
+             // before we update the UI away from "SENDING_COMMAND"
           } else {
             setDevice({ ...data, status: newStatus, currentAction } as DeviceState);
           }
+
 
         } else {
           const defaultState = {
             settings: defaultSettings,
             lastUpdated: serverTimestamp(),
             currentAction: "idle",
+            command: { dispense: false, cook: false, cancel: false }
           };
           set(dbRef, defaultState)
             .then(() => {
@@ -253,6 +258,15 @@ export function useDevice(deviceId: string | null) {
       setError(err.message || "Failed to send command to device.");
       if (device) setDevice(device);
     });
+
+    // Automatically reset the command flags after 1 second
+    setTimeout(() => {
+        update(ref(database, `devices/${deviceId}/command`), {
+            dispense: false,
+            cook: false,
+            cancel: false
+        });
+    }, 1000);
   };
 
   const startDevice = () => {
