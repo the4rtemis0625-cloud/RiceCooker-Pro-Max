@@ -39,8 +39,6 @@ export interface DeviceState {
     startTime: number;
     duration: number;
   } | null;
-  timeRemaining?: number;
-  progress?: number;
 }
 
 const defaultSettings: DeviceSettings = {
@@ -54,6 +52,8 @@ export function useDevice(deviceId: string | null) {
   const [device, setDevice] = useState<DeviceState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [progress, setProgress] = useState(0);
   
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -183,27 +183,28 @@ export function useDevice(deviceId: string | null) {
   useEffect(() => {
     clearCurrentInterval();
 
-    if (
-      device?.currentStage?.startTime &&
-      device.status !== "READY" &&
-      device.status !== "DONE" &&
-      device.status !== "CANCELED" &&
-      device.status !== "NOT_CONNECTED"
-    ) {
-      const { startTime, duration } = device.currentStage;
+    const currentStage = device?.currentStage;
+    const isRunning = device?.status === 'DISPENSING' || device?.status === 'WASHING' || device?.status === 'COOKING';
+
+    if (isRunning && currentStage?.startTime && currentStage?.duration) {
+      const { startTime, duration } = currentStage;
       
       intervalRef.current = setInterval(() => {
         const now = Date.now();
         const elapsed = (now - startTime) / 1000;
         const remaining = Math.max(0, duration - elapsed);
-        const progress = Math.min(100, (elapsed / duration) * 100);
+        const newProgress = Math.min(100, (elapsed / duration) * 100);
 
-        setDevice((prev) => prev ? { ...prev, timeRemaining: Math.round(remaining), progress } : null);
+        setTimeRemaining(Math.round(remaining));
+        setProgress(newProgress);
 
         if (remaining <= 0) {
             clearCurrentInterval();
         }
       }, 500); 
+    } else {
+        setTimeRemaining(0);
+        setProgress(0);
     }
 
     return () => clearCurrentInterval();
@@ -227,7 +228,7 @@ export function useDevice(deviceId: string | null) {
 
   const startDevice = () => {
     const currentAction = device?.currentAction;
-    if (currentAction !== 'dispense rice' && currentAction !== 'add water' && currentAction !== 'cook') {
+    if (currentAction === 'idle' || currentAction === 'done' || currentAction === 'canceled' || !currentAction) {
         sendCommandObject({
             command: "start",
             queue: ["add water", "dispense rice"]
@@ -237,7 +238,7 @@ export function useDevice(deviceId: string | null) {
 
   const cookDevice = () => {
     const currentAction = device?.currentAction;
-    if (currentAction !== 'dispense rice' && currentAction !== 'add water' && currentAction !== 'cook') {
+    if (currentAction === 'idle' || currentAction === 'done' || currentAction === 'canceled' || !currentAction) {
       sendCommandObject({
         command: "cook",
         queue: ["cook"]
@@ -267,6 +268,7 @@ export function useDevice(deviceId: string | null) {
     startDevice,
     cookDevice,
     cancelDevice,
+    timeRemaining,
+    progress,
   };
 }
-

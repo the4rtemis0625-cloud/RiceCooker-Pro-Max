@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -34,7 +35,7 @@ export function LoginForm() {
       const userProfileData = {
           email: user.email,
           createdAt: serverTimestamp(),
-          deviceId: null, // Initialize with no device
+          deviceId: null, 
       };
 
       try {
@@ -72,7 +73,6 @@ export function LoginForm() {
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await createUserProfile(userCredential.user);
-        sessionStorage.setItem("ricecooker-auth", "true");
         router.push("/dashboard");
       } catch (error) {
         const authError = error as AuthError;
@@ -85,7 +85,6 @@ export function LoginForm() {
     } else {
       try {
         await signInWithEmailAndPassword(auth, email, password);
-        sessionStorage.setItem("ricecooker-auth", "true");
         router.push("/dashboard");
       } catch (error) {
         const authError = error as AuthError;
