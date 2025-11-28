@@ -155,7 +155,7 @@ export function useDevice(deviceId: string | null) {
           
           const currentUiStatus = device?.status;
           
-          if(currentUiStatus === 'SENDING_COMMAND' && newStatus === 'READY') {
+          if(currentUiStatus === 'SENDING_COMMAND' && (newStatus === 'READY' || newStatus === 'DONE' || newStatus === 'CANCELED')) {
              // Do nothing, wait for device to move to a non-ready state
           } else {
             setDevice({ ...data, status: newStatus, currentAction } as DeviceState);

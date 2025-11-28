@@ -40,7 +40,7 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
   return (
     <Card className={cn(
         "text-center border-primary/20 relative overflow-hidden",
-        (isRunning || isConnecting) && "bg-accent border-accent shadow-lg",
+        isRunning && "bg-accent border-accent shadow-lg",
         !isConnected && "bg-muted/50"
       )}>
       <CardHeader>
@@ -76,8 +76,8 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
         </div>
 
         <div className="flex items-center justify-center gap-4 relative z-10">
-          <Icon className={cn("h-8 w-8", color, (isRunning || isConnecting) && "animate-spin")} />
-          <h2 className={cn("text-3xl font-bold font-mono tracking-wider", (isRunning || isConnecting) ? 'text-accent-foreground' : 'text-foreground')}>
+          <Icon className={cn("h-8 w-8", color, isRunning && "animate-spin")} />
+          <h2 className={cn("text-3xl font-bold font-mono tracking-wider", isRunning ? 'text-accent-foreground' : 'text-foreground')}>
             {text}
             { isConnected && <span className="blinking-cursor ml-1">_</span> }
           </h2>
