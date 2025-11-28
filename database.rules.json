@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        // Allow users to read and write their own data
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+    "devices": {
+      "$deviceId": {
+        // A user can read/write to a device if their user profile's deviceId matches.
+        ".read": "auth != null && root.child('users').child(auth.uid).child('deviceId').val() == $deviceId",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('deviceId').val() == $deviceId"
+      }
+    }
+  }
+}

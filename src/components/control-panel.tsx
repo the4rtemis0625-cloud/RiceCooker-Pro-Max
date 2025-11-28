@@ -9,11 +9,8 @@ import { cn } from "@/lib/utils";
 import { useDevice, type DeviceState } from "@/hooks/use-device";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useFirestore } from "@/firebase";
-import { doc, updateDoc } from "firebase/firestore";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
-
+import { useAuth, useDatabase } from "@/firebase";
+import { ref, update } from "firebase/database";
 
 interface ControlPanelProps {
     initialDeviceId: string | null;
@@ -22,34 +19,30 @@ interface ControlPanelProps {
 export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const [deviceId, setDeviceId] = useState(initialDeviceId);
   const { toast } = useToast();
-  const firestore = useFirestore();
+  const database = useDatabase();
   const auth = useAuth();
 
   const { device, loading, error, setDurations, startDevice, cancelDevice } = useDevice(deviceId);
 
   const updateDeviceIdInUserProfile = (newDeviceId: string | null) => {
     const user = auth?.currentUser;
-    if (!user || !firestore) return;
-    const userRef = doc(firestore, "users", user.uid);
+    if (!user || !database) return;
+    const userRef = ref(database, `users/${user.uid}`);
     
-    const payload = { deviceId: newDeviceId };
-
-    updateDoc(userRef, payload)
+    update(userRef, { deviceId: newDeviceId })
         .then(() => {
             setDeviceId(newDeviceId);
         })
-        .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: userRef.path,
-                operation: 'update',
-                requestResourceData: payload,
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
+        .catch((err) => {
+            console.error("Error updating device ID:", err);
+            toast({
+                variant: 'destructive',
+                title: "Error saving device",
+                description: err.message || "Could not update the device ID in your profile.",
+            });
         });
   };
 
-
-  // When the user saves a new device ID, update it in the user profile first
   const handleSaveDeviceId = (newDeviceId: string) => {
     updateDeviceIdInUserProfile(newDeviceId);
   };
@@ -58,9 +51,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
     if (device && (device.status === 'DISPENSING' || device.status === 'WASHING' || device.status === 'COOKING')) {
         cancelDevice();
     }
-    // This allows changing the device by clearing the association in the user's profile.
-    // Temporarily disabling this call to prevent crash.
-    // updateDeviceIdInUserProfile(null);
+    updateDeviceIdInUserProfile(null);
   };
   
   useEffect(() => {
@@ -76,7 +67,6 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const currentDevice = device ?? { status: 'NOT_CONNECTED' } as DeviceState;
   const isRunning = currentDevice.status === "DISPENSING" || currentDevice.status === "WASHING" || currentDevice.status === "COOKING";
   const isConnected = currentDevice.status !== 'NOT_CONNECTED';
-
 
   if (loading && deviceId) {
     return (

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, useFirestore } from "@/firebase";
+import { useAuth, useDatabase } from "@/firebase";
 import { User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { ref, get } from "firebase/database";
 import { ControlPanel } from "@/components/control-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ interface UserProfile {
 export default function DashboardPage() {
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
+  const database = useDatabase();
   const [user, setUser] = useState<User | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,13 +31,13 @@ export default function DashboardPage() {
         setUser(user);
         sessionStorage.setItem("ricecooker-auth", "true");
         
-        if (firestore) {
+        if (database) {
           // Fetch user profile to get deviceId
-          const userRef = doc(firestore, "users", user.uid);
-          const userSnap = await getDoc(userRef);
+          const userRef = ref(database, `users/${user.uid}`);
+          const userSnap = await get(userRef);
 
           if (userSnap.exists()) {
-              const userProfile = userSnap.data() as UserProfile;
+              const userProfile = userSnap.val() as UserProfile;
               setDeviceId(userProfile.deviceId);
           } else {
               console.log("No user profile found!");
@@ -55,7 +55,7 @@ export default function DashboardPage() {
     });
 
     return () => unsubscribe();
-  }, [auth, firestore, router]);
+  }, [auth, database, router]);
 
   const handleCheckAuth = () => {
     if (auth) {

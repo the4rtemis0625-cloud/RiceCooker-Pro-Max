@@ -30,9 +30,13 @@
           "required": ["dispenseDuration", "washDuration", "cookDuration"]
         },
         "lastUpdated": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The last time the device state was updated."
+            "type": "object",
+            "properties": {
+                ".sv": {
+                    "type": "string",
+                    "enum": ["timestamp"]
+                }
+            }
         },
         "currentStage": {
             "type": "object",
@@ -43,8 +47,13 @@
                     "enum": ["DISPENSING", "WASHING", "COOKING"]
                 },
                 "startTime": {
-                    "type": "string",
-                    "format": "date-time"
+                    "type": "object",
+                    "properties": {
+                        ".sv": {
+                            "type": "string",
+                            "enum": ["timestamp"]
+                        }
+                    }
                 },
                 "duration": {
                     "type": "number"
@@ -69,9 +78,13 @@
                 "description": "The ID of the rice cooker device associated with this user."
             },
             "createdAt": {
-                "type": "string",
-                "format": "date-time",
-                "description": "Timestamp of when the user profile was created."
+                "type": "object",
+                "properties": {
+                    ".sv": {
+                        "type": "string",
+                        "enum": ["timestamp"]
+                    }
+                }
             }
         },
         "required": ["email", "createdAt"]
@@ -79,19 +92,5 @@
   },
   "auth": {
     "providers": ["email"]
-  },
-  "firestore": {
-    "/devices/{deviceId}": {
-      "schema": {
-        "$ref": "#/entities/device"
-      },
-      "description": "Stores state and settings for each individual rice cooker device."
-    },
-    "/users/{userId}": {
-        "schema": {
-            "$ref": "#/entities/UserProfile"
-        },
-        "description": "Stores user profile information, linking a user to their device."
-    }
   }
 }

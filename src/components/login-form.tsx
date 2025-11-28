@@ -6,24 +6,21 @@ import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth, useFirestore } from "@/firebase";
+import { useAuth, useDatabase } from "@/firebase";
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
   AuthError,
   User
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { ref, set, serverTimestamp } from "firebase/database";
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
-
 
 export function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
-  const firestore = useFirestore();
+  const database = useDatabase();
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -31,24 +28,25 @@ export function LoginForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const createUserProfile = async (user: User) => {
-      if (!firestore || !user.email) return;
+      if (!database || !user.email) return;
 
-      const userRef = doc(firestore, "users", user.uid);
+      const userRef = ref(database, `users/${user.uid}`);
       const userProfileData = {
           email: user.email,
           createdAt: serverTimestamp(),
           deviceId: null, // Initialize with no device
       };
 
-      setDoc(userRef, userProfileData)
-        .catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: userRef.path,
-                operation: 'create',
-                requestResourceData: userProfileData,
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
+      try {
+        await set(userRef, userProfileData);
+      } catch(err: any) {
+        console.error("Error creating user profile in RTDB:", err);
+        toast({
+            variant: "destructive",
+            title: "Profile creation failed",
+            description: err.message || "Could not save user profile.",
         });
+      }
   }
 
 
