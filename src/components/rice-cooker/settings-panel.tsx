@@ -170,7 +170,7 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
           <div className="flex items-center justify-between">
             <Label htmlFor="wash-duration" className="flex items-center gap-2 text-lg">
               <Droplets className="h-5 w-5 text-primary/70" />
-              Wash Duration
+              Dispense Water
             </Label>
             <span className="font-mono text-lg">{washDuration}s</span>
           </div>
