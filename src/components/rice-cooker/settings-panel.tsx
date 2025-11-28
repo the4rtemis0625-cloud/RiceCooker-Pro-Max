@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { DeviceSettings } from "@/hooks/use-device";
 
 type SettingsPanelProps = {
-  durations?: DeviceSettings;
+  durations: DeviceSettings;
   setDurations: (settings: Partial<DeviceSettings>) => void;
   isDisabled: boolean;
 };
@@ -55,11 +55,6 @@ export function SettingsPanel({ durations = defaultDurations, setDurations, isDi
       console.error("Could not load custom presets from localStorage", error);
     }
   }, []);
-
-  const handleSetDurations = (newDurations: Partial<DeviceSettings>) => {
-    if (isDisabled) return;
-    setDurations(newDurations);
-  }
 
   const handlePreset = (preset: 'small' | 'medium' | 'large') => {
     if (isDisabled) return;
@@ -170,7 +165,7 @@ export function SettingsPanel({ durations = defaultDurations, setDurations, isDi
             max={30}
             step={1}
             value={[durations.pumpTime]}
-            onValueChange={(value) => handleSetDurations({ pumpTime: value[0] })}
+            onValueChange={(value) => setDurations({ pumpTime: value[0] })}
             disabled={isDisabled}
           />
         </div>
@@ -189,7 +184,7 @@ export function SettingsPanel({ durations = defaultDurations, setDurations, isDi
             max={30}
             step={1}
             value={[durations.dispenseTime]}
-            onValueChange={(value) => handleSetDurations({ dispenseTime: value[0] })}
+            onValueChange={(value) => setDurations({ dispenseTime: value[0] })}
             disabled={isDisabled}
           />
         </div>
@@ -208,7 +203,7 @@ export function SettingsPanel({ durations = defaultDurations, setDurations, isDi
             max={120}
             step={1}
             value={[durations.cookTime]}
-            onValueChange={(value) => handleSetDurations({ cookTime: value[0] })}
+            onValueChange={(value) => setDurations({ cookTime: value[0] })}
             disabled={isDisabled}
           />
         </div>
