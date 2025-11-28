@@ -75,7 +75,7 @@ export function useDevice(deviceId: string | null) {
   }, [deviceId, database]);
 
   useEffect(() => {
-    if (device?.settings) {
+    if (device?.settings && JSON.stringify(device.settings) !== JSON.stringify(localSettings)) {
       setLocalSettings(device.settings);
     }
   }, [device?.settings]);
@@ -109,7 +109,6 @@ export function useDevice(deviceId: string | null) {
         if (snapshot.exists()) {
           const data = snapshot.val() as DeviceState;
           setDevice(data);
-          // Sync local settings only if they differ, to avoid loops
           if (data.settings && JSON.stringify(data.settings) !== JSON.stringify(localSettings)) {
             setLocalSettings(data.settings);
           }
@@ -193,14 +192,23 @@ export function useDevice(deviceId: string | null) {
                     },
                 });
             } else if (name === 'DISPENSING') {
-                updateDeviceInRtdb({ status: 'READY', currentStage: null });
+                updateDeviceInRtdb({ 
+                    status: 'COOKING', 
+                    currentStage: {
+                        name: 'COOKING',
+                        startTime: serverTimestamp() as any,
+                        duration: localSettings.cookDuration,
+                    },
+                });
+            } else if (name === 'COOKING') {
+                updateDeviceInRtdb({ status: 'DONE', currentStage: null });
             }
         }
       }, 500); 
     }
 
     return () => clearCurrentInterval();
-  }, [device?.status, device?.currentStage, clearCurrentInterval, updateDeviceInRtdb, localSettings.washDuration, localSettings.dispenseDuration]);
+  }, [device?.status, device?.currentStage, clearCurrentInterval, updateDeviceInRtdb, localSettings.washDuration, localSettings.dispenseDuration, localSettings.cookDuration]);
 
 
   const setDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
@@ -226,7 +234,8 @@ export function useDevice(deviceId: string | null) {
     if (
       device &&
       (device.status === "READY" ||
-        device.status === "DONE")
+        device.status === "DONE" ||
+        device.status === "CANCELED")
     ) {
       updateDeviceInRtdb({
         status: "WASHING",
