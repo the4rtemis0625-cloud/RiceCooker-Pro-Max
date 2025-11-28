@@ -193,7 +193,7 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
               <CookingPot className="h-5 w-5 text-primary/70" />
               Cook Duration
             </Label>
-            <span className="font-mono text-lg">{cookTime}s</span>
+            <span className="font-mono text-lg">{cookTime}m</span>
           </div>
           <Slider
             id="cook-time"
