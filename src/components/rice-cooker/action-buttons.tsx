@@ -2,9 +2,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Play, Square, CookingPot } from "lucide-react";
+import { Play, Square, CookingPot, Loader } from "lucide-react";
+import { type Status } from "@/hooks/use-device";
 
 type ActionButtonsProps = {
+  status: Status;
   onStart: () => void;
   onCook: () => void;
   onCancel: () => void;
@@ -13,7 +15,9 @@ type ActionButtonsProps = {
   isConnected: boolean;
 };
 
-export function ActionButtons({ onStart, onCook, onCancel, isRunning, isStartCookDisabled, isConnected }: ActionButtonsProps) {
+export function ActionButtons({ status, onStart, onCook, onCancel, isRunning, isStartCookDisabled, isConnected }: ActionButtonsProps) {
+  const isSendingCommand = status === 'SENDING_COMMAND';
+    
   return (
     <div className="flex flex-col sm:flex-row gap-4 mt-8">
       <Button
@@ -22,7 +26,11 @@ export function ActionButtons({ onStart, onCook, onCancel, isRunning, isStartCoo
         size="lg"
         className="w-full text-lg font-bold tracking-wider"
       >
-        <Play className="mr-2 h-5 w-5" />
+        {isSendingCommand ? (
+            <Loader className="mr-2 h-5 w-5 animate-spin" />
+        ) : (
+            <Play className="mr-2 h-5 w-5" />
+        )}
         Add Water & Dispense Rice
       </Button>
       <Button
