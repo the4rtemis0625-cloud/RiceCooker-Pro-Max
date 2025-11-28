@@ -59,6 +59,11 @@
                     "type": "number"
                 }
             }
+        },
+        "currentAction": {
+            "type": "string",
+            "description": "The specific action the device is currently performing.",
+            "enum": ["dispense rice", "add water", "cook"]
         }
       },
       "required": ["status", "settings", "lastUpdated"]

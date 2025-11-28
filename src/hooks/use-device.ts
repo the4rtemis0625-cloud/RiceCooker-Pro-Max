@@ -34,6 +34,7 @@ export interface DeviceState {
   settings: DeviceSettings;
   lastUpdated: number;
   queue?: string[]; // Field for sending commands
+  currentAction?: 'dispense rice' | 'add water' | 'cook' | null;
   currentStage?: {
     name: "DISPENSING" | "WASHING" | "COOKING";
     startTime: number;
@@ -126,10 +127,31 @@ export function useDevice(deviceId: string | null) {
           };
           
           let newStatus = data.status;
-          if (data.status === "Online – Queue Ready" as any || data.status === "Online - Queue Ready" as any) {
-            newStatus = "READY";
-          }
 
+          // Map currentAction to status
+          if (data.currentAction) {
+            switch(data.currentAction) {
+              case 'dispense rice':
+                newStatus = 'DISPENSING';
+                break;
+              case 'add water':
+                newStatus = 'WASHING';
+                break;
+              case 'cook':
+                newStatus = 'COOKING';
+                break;
+              default:
+                // If currentAction is null or something else, check the old status field
+                if (data.status === "Online – Queue Ready" as any || data.status === "Online - Queue Ready" as any) {
+                  newStatus = "READY";
+                }
+                break;
+            }
+          } else {
+             if (data.status === "Online – Queue Ready" as any || data.status === "Online - Queue Ready" as any) {
+                newStatus = "READY";
+            }
+          }
 
           setDevice({ ...data, status: newStatus, settings: saneSettings });
 
