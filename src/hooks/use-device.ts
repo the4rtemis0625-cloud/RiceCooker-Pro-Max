@@ -75,7 +75,7 @@ export function useDevice(deviceId: string | null) {
   }, [deviceId, database]);
 
   useEffect(() => {
-    if (device) {
+    if (device?.settings) {
       setLocalSettings(device.settings);
     }
   }, [device?.settings]);
@@ -109,7 +109,8 @@ export function useDevice(deviceId: string | null) {
         if (snapshot.exists()) {
           const data = snapshot.val() as DeviceState;
           setDevice(data);
-          if (data.settings) {
+          // Sync local settings only if they differ, to avoid loops
+          if (data.settings && JSON.stringify(data.settings) !== JSON.stringify(localSettings)) {
             setLocalSettings(data.settings);
           }
           setError(null);
@@ -182,16 +183,16 @@ export function useDevice(deviceId: string | null) {
 
         if (remaining <= 0) {
             clearCurrentInterval();
-            if (name === 'DISPENSING') {
+            if (name === 'WASHING') {
                 updateDeviceInRtdb({
-                    status: 'WASHING',
+                    status: 'DISPENSING',
                     currentStage: {
-                        name: 'WASHING',
+                        name: 'DISPENSING',
                         startTime: serverTimestamp() as any,
-                        duration: localSettings.washDuration,
+                        duration: localSettings.dispenseDuration,
                     },
                 });
-            } else if (name === 'WASHING') {
+            } else if (name === 'DISPENSING') {
                 updateDeviceInRtdb({ status: 'READY', currentStage: null });
             }
         }
@@ -199,7 +200,7 @@ export function useDevice(deviceId: string | null) {
     }
 
     return () => clearCurrentInterval();
-  }, [device?.status, device?.currentStage, clearCurrentInterval, updateDeviceInRtdb, localSettings.washDuration]);
+  }, [device?.status, device?.currentStage, clearCurrentInterval, updateDeviceInRtdb, localSettings.washDuration, localSettings.dispenseDuration]);
 
 
   const setDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
@@ -228,11 +229,11 @@ export function useDevice(deviceId: string | null) {
         device.status === "DONE")
     ) {
       updateDeviceInRtdb({
-        status: "DISPENSING",
+        status: "WASHING",
         currentStage: {
-          name: "DISPENSING",
+          name: "WASHING",
           startTime: serverTimestamp() as any,
-          duration: localSettings.dispenseDuration,
+          duration: localSettings.washDuration,
         },
       });
     }
