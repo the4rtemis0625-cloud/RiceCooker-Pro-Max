@@ -198,7 +198,7 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
             max={120}
             step={1}
             value={[cookDuration]}
-            onValue-change={(value) => handleSetDurations({ cookDuration: value[0] })}
+            onValueChange={(value) => handleSetDurations({ cookDuration: value[0] })}
             disabled={isDisabled}
           />
         </div>
