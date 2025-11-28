@@ -2,9 +2,9 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Auth } from 'firebase/auth';
-import { Firestore } from 'firebase/firestore';
-import { initializeFirebase } from './index';
+import { Auth, getAuth } from 'firebase/auth';
+import { Firestore, getFirestore } from 'firebase/firestore';
+import { initializeFirebaseApp } from './config';
 
 interface FirebaseContextValue {
   app: FirebaseApp | null;
@@ -23,7 +23,9 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // This effect runs only on the client, ensuring services are not initialized on the server.
-    const { app, auth, firestore } = initializeFirebase();
+    const app = initializeFirebaseApp();
+    const auth = getAuth(app);
+    const firestore = getFirestore(app);
     setServices({ app, auth, firestore });
   }, []);
 

@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { getFirebase } from "@/firebase"; // Keep for firestore instance for now
 import { ControlPanel } from "@/components/control-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -16,6 +15,7 @@ interface UserProfile {
 export default function DashboardPage() {
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const [user, setUser] = useState<User | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,17 +29,18 @@ export default function DashboardPage() {
         setUser(user);
         sessionStorage.setItem("ricecooker-auth", "true");
         
-        // Fetch user profile to get deviceId
-        const { firestore } = getFirebase();
-        const userRef = doc(firestore, "users", user.uid);
-        const userSnap = await getDoc(userRef);
+        if (firestore) {
+          // Fetch user profile to get deviceId
+          const userRef = doc(firestore, "users", user.uid);
+          const userSnap = await getDoc(userRef);
 
-        if (userSnap.exists()) {
-            const userProfile = userSnap.data() as UserProfile;
-            setDeviceId(userProfile.deviceId);
-        } else {
-            console.log("No user profile found!");
-            setDeviceId(null);
+          if (userSnap.exists()) {
+              const userProfile = userSnap.data() as UserProfile;
+              setDeviceId(userProfile.deviceId);
+          } else {
+              console.log("No user profile found!");
+              setDeviceId(null);
+          }
         }
 
       } else {
@@ -52,7 +53,7 @@ export default function DashboardPage() {
     });
 
     return () => unsubscribe();
-  }, [auth, router]);
+  }, [auth, firestore, router]);
 
   if (loading) {
     return (
