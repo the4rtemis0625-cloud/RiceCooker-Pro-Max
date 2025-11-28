@@ -28,7 +28,8 @@ type StatusDisplayProps = {
 
 export function StatusDisplay({ status, timeRemaining, progress, deviceId }: StatusDisplayProps) {
   const safeStatus = status || 'NOT_CONNECTED';
-  const { text, icon: Icon, color } = statusConfig[safeStatus];
+  const config = statusConfig[safeStatus as keyof typeof statusConfig] || statusConfig.NOT_CONNECTED;
+  const { text, icon: Icon, color } = config;
   const minutes = Math.floor(timeRemaining / 60);
   const seconds = timeRemaining % 60;
 
@@ -51,7 +52,7 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex items-center justify-center gap-4">
-          <Icon className={cn("h-8 w-8", color, isRunning && "animate-spin")} />
+          <Icon className={cn("h-8 w-8", color, isRunning && safeStatus === 'SENDING_COMMAND' && "animate-spin")} />
           <h2 className={cn("text-3xl font-bold font-mono tracking-wider", isRunning ? 'text-accent-foreground' : 'text-foreground')}>
             {text}
             { isConnected && safeStatus !== 'SENDING_COMMAND' && <span className="blinking-cursor ml-1">_</span> }
