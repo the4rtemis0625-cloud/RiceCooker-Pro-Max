@@ -42,8 +42,8 @@ export interface DeviceState {
 }
 
 const defaultSettings: DeviceSettings = {
-  dispenseDuration: 5,
-  washDuration: 15,
+  dispenseDuration: 10,
+  washDuration: 5,
   cookDuration: 30,
 };
 
@@ -60,6 +60,7 @@ export function useDevice(deviceId: string | null) {
   // Function to send a command to the RTDB
   const sendCommand = useCallback((command: string) => {
     if (!deviceId || !database) return;
+    // Clear previous command before sending a new one
     const commandRef = ref(database, `devices/${deviceId}/command`);
     set(commandRef, command).catch((err) => {
       console.error("Failed to send command:", err);
@@ -81,7 +82,7 @@ export function useDevice(deviceId: string | null) {
     if (device?.settings && JSON.stringify(device.settings) !== JSON.stringify(localSettings)) {
       setLocalSettings(device.settings);
     }
-  }, [device?.settings]);
+  }, [device?.settings, localSettings]);
 
 
   // Effect to listen for device state changes from RTDB
@@ -159,7 +160,7 @@ export function useDevice(deviceId: string | null) {
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [deviceId, database, clearCurrentInterval]);
+  }, [deviceId, database, clearCurrentInterval, localSettings]);
 
   // Effect for client-side progress calculation
   useEffect(() => {
@@ -227,6 +228,17 @@ export function useDevice(deviceId: string | null) {
     }
   };
 
+  const cookDevice = () => {
+    if (
+      device &&
+      device.status !== "DISPENSING" &&
+      device.status !== "WASHING" &&
+      device.status !== "COOKING"
+    ) {
+      sendCommand("cook");
+    }
+  };
+
   const cancelDevice = () => {
     // Send "stop" command only if it's in an active state.
     if (
@@ -246,6 +258,7 @@ export function useDevice(deviceId: string | null) {
     error,
     setDurations,
     startDevice,
+    cookDevice,
     cancelDevice,
   };
 }

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -22,7 +23,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const database = useDatabase();
   const auth = useAuth();
 
-  const { device, loading, error, setDurations, startDevice, cancelDevice, localSettings } = useDevice(deviceId);
+  const { device, loading, error, setDurations, startDevice, cookDevice, cancelDevice, localSettings } = useDevice(deviceId);
 
   const updateDeviceIdInUserProfile = (newDeviceId: string | null) => {
     const user = auth?.currentUser;
@@ -67,6 +68,8 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const currentDevice = device ?? { status: 'NOT_CONNECTED' } as Partial<DeviceState>;
   const isRunning = currentDevice.status === "DISPENSING" || currentDevice.status === "WASHING" || currentDevice.status === "COOKING";
   const isConnected = currentDevice.status !== 'NOT_CONNECTED';
+  const isReady = currentDevice.status === 'READY';
+
 
   if (loading && deviceId) {
     return (
@@ -101,10 +104,12 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
               isDisabled={isRunning || !isConnected}
             />
             <ActionButtons
-            onStart={startDevice}
-            onCancel={cancelDevice}
-            isRunning={isRunning}
-            isDisabled={!isConnected}
+              onStart={startDevice}
+              onCook={cookDevice}
+              onCancel={cancelDevice}
+              isRunning={isRunning}
+              isReady={isReady}
+              isDisabled={!isConnected}
             />
         </div>
     </div>
