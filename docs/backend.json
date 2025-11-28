@@ -14,6 +14,10 @@
               "type": "boolean",
               "description": "Set to true to start the dispense and wash cycle."
             },
+            "add_water": {
+              "type": "boolean",
+              "description": "Set to true to start adding water."
+            },
             "cook": {
               "type": "boolean",
               "description": "Set to true to start the cooking cycle."

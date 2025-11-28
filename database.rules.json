@@ -16,6 +16,9 @@
           "dispense": {
             ".write": "auth != null && root.child('users').child(auth.uid).child('deviceId').val() == $deviceId"
           },
+          "add_water": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('deviceId').val() == $deviceId"
+          },
           "cook": {
             ".write": "auth != null && root.child('users').child(auth.uid).child('deviceId').val() == $deviceId"
           },
