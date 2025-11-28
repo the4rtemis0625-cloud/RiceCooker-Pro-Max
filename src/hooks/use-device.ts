@@ -54,18 +54,8 @@ export function useDevice(deviceId: string | null) {
   const [error, setError] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [progress, setProgress] = useState(0);
-  
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const sendCommandObject = useCallback((commandData: object) => {
-    if (!deviceId || !database) return;
-    const deviceRef = ref(database, `devices/${deviceId}`);
-    update(deviceRef, commandData).catch((err) => {
-      console.error("Failed to send command:", err);
-      setError(err.message || "Failed to send command to device.");
-    });
-  }, [deviceId, database]);
-
 
   const clearCurrentInterval = useCallback(() => {
     if (intervalRef.current) {
@@ -174,7 +164,7 @@ export function useDevice(deviceId: string | null) {
       off(dbRef, "value", listener);
       clearCurrentInterval();
     };
-  }, [deviceId, database, clearCurrentInterval, device?.settings]);
+  }, [deviceId, database, clearCurrentInterval]);
 
   useEffect(() => {
     clearCurrentInterval();
@@ -206,16 +196,23 @@ export function useDevice(deviceId: string | null) {
     return () => clearCurrentInterval();
   }, [device?.status, device?.currentStage, clearCurrentInterval]);
 
+  const sendCommandObject = useCallback((commandData: object) => {
+    if (!deviceId || !database) return;
+    const deviceRef = ref(database, `devices/${deviceId}`);
+    update(deviceRef, commandData).catch((err) => {
+      console.error("Failed to send command:", err);
+      setError(err.message || "Failed to send command to device.");
+    });
+  }, [deviceId, database]);
 
-  const setDurations = (newSettings: Partial<DeviceSettings>) => {
+  const setDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
       if (!deviceId || !database) return;
       const dbRef = ref(database, `devices/${deviceId}/settings`);
       update(dbRef, newSettings).catch((err) => {
         console.error("Failed to update settings in RTDB:", err);
         setError(err.message || "Failed to save settings.");
       });
-  };
-
+  }, [deviceId, database]);
 
   const startDevice = () => {
     const currentAction = device?.currentAction;
