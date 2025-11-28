@@ -68,18 +68,16 @@ export function useDevice(deviceId: string | null) {
     }
   }, []);
 
-  const handleSetDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
-    if (!deviceId || !database) return;
-    
-    // Update local state optimistically for instant UI feedback
-    setDurations(prev => ({...prev, ...newSettings}));
+  const setDurationsCallback = useCallback((newSettings: Partial<DeviceSettings>) => {
+      if (!deviceId || !database) return;
 
-    const dbRef = ref(database, `devices/${deviceId}/settings`);
-    update(dbRef, newSettings).catch((err) => {
-      console.error("Failed to update settings in RTDB:", err);
-      setError(err.message || "Failed to save settings.");
-    });
+      const dbRef = ref(database, `devices/${deviceId}/settings`);
+      update(dbRef, newSettings).catch((err) => {
+        console.error("Failed to update settings in RTDB:", err);
+        setError(err.message || "Failed to save settings.");
+      });
   }, [deviceId, database]);
+
 
   useEffect(() => {
     if (!database) {
@@ -272,7 +270,7 @@ export function useDevice(deviceId: string | null) {
     durations,
     loading,
     error,
-    setDurations: handleSetDurations,
+    setDurations: setDurationsCallback,
     startDevice,
     cookDevice,
     cancelDevice,
