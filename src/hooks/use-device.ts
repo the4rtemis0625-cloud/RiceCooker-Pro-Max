@@ -240,6 +240,12 @@ export function useDevice(deviceId: string | null) {
   
   const sendCommandObject = (commandData: object) => {
     if (!deviceId || !database) return;
+    const currentAction = device?.currentAction;
+    
+    if(currentAction !== 'idle' && currentAction !== 'done' && currentAction !== 'canceled' && currentAction !== null && currentAction !== undefined){
+        setError("Device is currently busy.");
+        return;
+    }
 
     if (device) {
       const lastStatus = device.status;
@@ -265,32 +271,26 @@ export function useDevice(deviceId: string | null) {
   };
 
   const startDevice = () => {
-    const currentAction = device?.currentAction;
-    if (currentAction === 'idle' || currentAction === 'done' || currentAction === 'canceled' || !currentAction) {
-        sendCommandObject({
-            "command/dispense": true,
-            "command/cook": false,
-            "command/cancel": false,
-            "command/add_water": false,
-            "settings/dispenseDuration": durations.dispenseTime,
-            "settings/washDuration": durations.pumpTime,
-            queue: ["add water", "dispense rice"]
-        });
-    }
+    sendCommandObject({
+      "command/dispense": false,
+      "command/cook": false,
+      "command/cancel": false,
+      "command/add_water": true,
+      "settings/dispenseDuration": durations.dispenseTime,
+      "settings/washDuration": durations.pumpTime,
+      queue: ["add water", "dispense rice"]
+    });
   };
 
   const cookDevice = () => {
-    const currentAction = device?.currentAction;
-    if (currentAction === 'idle' || currentAction === 'done' || currentAction === 'canceled' || !currentAction) {
-      sendCommandObject({
-        "command/cook": true,
-        "command/dispense": false,
-        "command/cancel": false,
-        "command/add_water": false,
-        "settings/cookDuration": durations.cookTime * 60, // convert minutes to seconds
-        queue: ["cook"]
-      });
-    }
+    sendCommandObject({
+      "command/cook": true,
+      "command/dispense": false,
+      "command/cancel": false,
+      "command/add_water": false,
+      "settings/cookDuration": durations.cookTime * 60, // convert minutes to seconds
+      queue: ["cook"]
+    });
   };
 
   const cancelDevice = () => {
@@ -300,7 +300,8 @@ export function useDevice(deviceId: string | null) {
       currentAction === "add water" ||
       currentAction === "cook"
     ) {
-      sendCommandObject({
+      const deviceRef = ref(database, `devices/${deviceId}`);
+      update(deviceRef, {
         "command/cancel": true,
         "command/dispense": false,
         "command/cook": false,
