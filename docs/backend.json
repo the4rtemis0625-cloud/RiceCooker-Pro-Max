@@ -53,6 +53,28 @@
         }
       },
       "required": ["status", "settings", "lastUpdated"]
+    },
+    "UserProfile": {
+        "title": "User Profile",
+        "description": "Stores user-specific information.",
+        "type": "object",
+        "properties": {
+            "email": {
+                "type": "string",
+                "format": "email",
+                "description": "The user's email address."
+            },
+            "deviceId": {
+                "type": "string",
+                "description": "The ID of the rice cooker device associated with this user."
+            },
+            "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timestamp of when the user profile was created."
+            }
+        },
+        "required": ["email", "createdAt"]
     }
   },
   "auth": {
@@ -64,6 +86,12 @@
         "$ref": "#/entities/device"
       },
       "description": "Stores state and settings for each individual rice cooker device."
+    },
+    "/users/{userId}": {
+        "schema": {
+            "$ref": "#/entities/UserProfile"
+        },
+        "description": "Stores user profile information, linking a user to their device."
     }
   }
 }

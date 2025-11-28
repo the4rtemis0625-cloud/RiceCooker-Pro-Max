@@ -1,51 +1,74 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Plug, PlugZap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Plug, PlugZap, Save } from "lucide-react";
 
 
 type DeviceConnectionProps = {
-    deviceId: string;
-    setDeviceId: (id: string) => void;
-    isConnected: boolean;
-    onConnect: () => void;
+    deviceId: string | null;
+    onSave: (id: string) => void;
     onDisconnect: () => void;
+    userId: string;
 };
 
-export function DeviceConnection({ deviceId, setDeviceId, isConnected, onConnect, onDisconnect }: DeviceConnectionProps) {
+export function DeviceConnection({ deviceId, onSave, onDisconnect }: DeviceConnectionProps) {
+  const [inputDeviceId, setInputDeviceId] = useState("");
+  
+  const handleSave = () => {
+    if (inputDeviceId.trim()) {
+        onSave(inputDeviceId.trim());
+    }
+  }
+
+  if (deviceId) {
+    return (
+        <Card className="border-primary/20">
+            <CardHeader>
+                <CardTitle className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+                    Device Connection
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center gap-4">
+                    <div className="flex-grow space-y-2">
+                        <Label htmlFor="device-id-display" className="text-muted-foreground">Connected Device ID</Label>
+                        <p id="device-id-display" className="font-mono tracking-wider text-lg h-10 flex items-center">{deviceId}</p>
+                    </div>
+                    <Button onClick={onDisconnect} variant="destructive" className="self-end">
+                        <PlugZap className="mr-2" /> Change Device
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    );
+  }
+
   return (
     <Card className="border-primary/20">
         <CardHeader>
             <CardTitle className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
-                Device Connection
+                Connect Your Device
             </CardTitle>
         </CardHeader>
         <CardContent>
             <div className="flex items-center gap-4">
                 <div className="flex-grow space-y-2">
-                    <Label htmlFor="device-id" className="text-muted-foreground">Device ID</Label>
+                    <Label htmlFor="device-id-input" className="text-muted-foreground">Enter Your Device ID</Label>
                     <Input 
-                        id="device-id"
-                        placeholder="Enter your Device ID"
-                        value={deviceId}
-                        onChange={(e) => setDeviceId(e.target.value)}
-                        disabled={isConnected}
+                        id="device-id-input"
+                        placeholder="e.g., ricecooker_A4A9A9DAF380"
+                        value={inputDeviceId}
+                        onChange={(e) => setInputDeviceId(e.target.value)}
                         className="font-mono tracking-wider"
                     />
                 </div>
-                {isConnected ? (
-                    <Button onClick={onDisconnect} variant="destructive" className="self-end">
-                        <PlugZap className="mr-2" /> Disconnect
-                    </Button>
-                ) : (
-                    <Button onClick={onConnect} disabled={!deviceId} className="self-end">
-                        <Plug className="mr-2" /> Connect
-                    </Button>
-                )}
+                <Button onClick={handleSave} disabled={!inputDeviceId.trim()} className="self-end">
+                    <Save className="mr-2" /> Save & Connect
+                </Button>
             </div>
         </CardContent>
     </Card>

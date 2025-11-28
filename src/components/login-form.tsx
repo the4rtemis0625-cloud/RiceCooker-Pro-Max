@@ -10,9 +10,28 @@ import { getFirebase } from "@/firebase";
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
-  AuthError
+  AuthError,
+  User
 } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+
+const createUserProfile = async (user: User) => {
+    const { firestore } = getFirebase();
+    if (!user.email) return;
+
+    const userRef = doc(firestore, "users", user.uid);
+    try {
+        await setDoc(userRef, {
+            email: user.email,
+            createdAt: serverTimestamp(),
+            deviceId: null, // Initialize with no device
+        });
+    } catch (error) {
+        console.error("Error creating user profile:", error);
+        // We can optionally show a toast here, but for now, we'll log it
+    }
+}
 
 export function LoginForm() {
   const router = useRouter();
@@ -35,7 +54,8 @@ export function LoginForm() {
         return;
       }
       try {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await createUserProfile(userCredential.user);
         sessionStorage.setItem("ricecooker-auth", "true");
         router.push("/dashboard");
       } catch (error) {
@@ -56,7 +76,9 @@ export function LoginForm() {
         toast({
           variant: "destructive",
           title: "Uh oh! Something went wrong.",
-          description: authError.message || "Could not log in.",
+          description: authError.code === 'auth/invalid-credential' 
+            ? "Invalid email or password. Please try again."
+            : authError.message || "Could not log in.",
         });
       }
     }

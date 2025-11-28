@@ -6,8 +6,10 @@ import {
   doc,
   onSnapshot,
   setDoc,
+  updateDoc,
   serverTimestamp,
   Timestamp,
+  DocumentData,
 } from "firebase/firestore";
 
 export type Status =
@@ -134,7 +136,7 @@ export function useDevice(deviceId: string | null) {
   }, [device, clearCurrentInterval]);
 
 
-  const updateDevice = async (data: Partial<DeviceState>) => {
+  const updateDeviceInFirestore = async (data: Partial<DeviceState> | DocumentData) => {
     if (!deviceId) return;
     const { firestore } = getFirebase();
     const docRef = doc(firestore, "devices", deviceId);
@@ -146,24 +148,36 @@ export function useDevice(deviceId: string | null) {
     }
   };
 
+  const updateDeviceId = async (userId: string, newDeviceId: string | null) => {
+    if (!userId) return;
+    const { firestore } = getFirebase();
+    const userRef = doc(firestore, "users", userId);
+    try {
+      await updateDoc(userRef, { deviceId: newDeviceId });
+    } catch (e) {
+      console.error("Error updating user's deviceId:", e);
+      // Optionally show a toast to the user
+    }
+  };
+
   const setDurations = (settings: Partial<DeviceSettings>) => {
     if(device){
         const newSettings = { ...device.settings, ...settings };
-        updateDevice({ settings: newSettings });
+        updateDeviceInFirestore({ settings: newSettings });
     }
   };
 
   const startDevice = () => {
     if (device && (device.status === 'READY' || device.status === 'DONE' || device.status === 'CANCELED')) {
-        updateDevice({ status: 'DISPENSING' });
+        updateDeviceInFirestore({ status: 'DISPENSING' });
     }
   };
 
   const cancelDevice = () => {
     if (device && (device.status === 'DISPENSING' || device.status === 'WASHING' || device.status === 'COOKING')) {
-      updateDevice({ status: 'CANCELED', currentStage: undefined });
+        updateDeviceInFirestore({ status: 'CANCELED', currentStage: undefined });
     }
   };
 
-  return { device, loading, error, setDurations, startDevice, cancelDevice };
+  return { device, loading, error, setDurations, startDevice, cancelDevice, updateDeviceId };
 }
