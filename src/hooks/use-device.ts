@@ -20,8 +20,7 @@ export type Status =
   | "COOKING"
   | "DONE"
   | "CANCELED"
-  | "NOT_CONNECTED"
-  | "SENDING_COMMAND";
+  | "NOT_CONNECTED";
 
 export interface DeviceSettings {
   pumpTime: number;
@@ -57,23 +56,9 @@ export function useDevice(deviceId: string | null) {
   const [device, setDevice] = useState<DeviceState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeoutError, setTimeoutError] = useState(false);
   
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const commandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Effect to show toast on timeout error
-  useEffect(() => {
-    if (timeoutError) {
-      toast({
-        variant: "destructive",
-        title: "Device Connection Timeout",
-        description: "The device did not respond. Please check its connection and try again.",
-      });
-      setTimeoutError(false); // Reset the error state
-    }
-  }, [timeoutError, toast]);
 
   // Function to send a command object to the RTDB
   const sendCommandObject = useCallback((commandData: object) => {
@@ -156,18 +141,7 @@ export function useDevice(deviceId: string | null) {
               break;
           }
           
-          // Preserve SENDING_COMMAND status if it's currently active on the client
-          setDevice(prevDevice => {
-            if (prevDevice?.status === 'SENDING_COMMAND' && newStatus === 'READY' && data.currentAction === 'idle') {
-                // If we are sending a command, and the device reports back 'idle', it means it hasn't started the new action yet.
-                // We keep the 'SENDING_COMMAND' status to give it time to start. The timeout will handle if it never starts.
-                // But we still update the underlying data from the device.
-                return { ...data, status: 'SENDING_COMMAND', settings: saneSettings };
-            }
-            // In all other cases, we accept the new status from the device.
-            return { ...data, status: newStatus, settings: saneSettings };
-          });
-
+          setDevice({ ...data, status: newStatus, settings: saneSettings });
 
         } else {
           const defaultState: Partial<DeviceState> & { settings: DeviceSettings } = {
@@ -209,9 +183,6 @@ export function useDevice(deviceId: string | null) {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
-      if (commandTimeoutRef.current) {
-        clearTimeout(commandTimeoutRef.current);
-      }
     };
   }, [deviceId, database, clearCurrentInterval]);
 
@@ -223,8 +194,7 @@ export function useDevice(deviceId: string | null) {
       device.status !== "READY" &&
       device.status !== "DONE" &&
       device.status !== "CANCELED" &&
-      device.status !== "NOT_CONNECTED" &&
-      device.status !== "SENDING_COMMAND"
+      device.status !== "NOT_CONNECTED"
     ) {
       const { startTime, duration } = device.currentStage;
       
@@ -241,13 +211,6 @@ export function useDevice(deviceId: string | null) {
         }
       }, 500); 
     }
-
-    // If the status is no longer "SENDING_COMMAND", clear the timeout.
-    if (device?.status !== "SENDING_COMMAND" && commandTimeoutRef.current) {
-        clearTimeout(commandTimeoutRef.current);
-        commandTimeoutRef.current = null;
-    }
-
 
     return () => clearCurrentInterval();
   }, [device?.status, device?.currentStage, clearCurrentInterval]);
@@ -274,26 +237,10 @@ export function useDevice(deviceId: string | null) {
     }, 500);
   }, [deviceId, database, device?.settings]);
 
-  const startCommandTimeout = () => {
-    if (commandTimeoutRef.current) {
-        clearTimeout(commandTimeoutRef.current);
-    }
-    commandTimeoutRef.current = setTimeout(() => {
-        setDevice((prev) => {
-            if (prev?.status === "SENDING_COMMAND") {
-                setTimeoutError(true);
-                return { ...prev, status: "READY", currentAction: 'idle' };
-            }
-            return prev;
-        });
-    }, 10000); // 10 seconds
-  };
 
   const startDevice = () => {
     const currentAction = device?.currentAction;
     if (currentAction !== 'dispense rice' && currentAction !== 'add water' && currentAction !== 'cook') {
-      setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
-      startCommandTimeout();
       const command = {
         command: "start",
         queue: ["add water", "dispense rice"]
@@ -305,8 +252,6 @@ export function useDevice(deviceId: string | null) {
   const cookDevice = () => {
     const currentAction = device?.currentAction;
     if (currentAction !== 'dispense rice' && currentAction !== 'add water' && currentAction !== 'cook') {
-      setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
-      startCommandTimeout();
       const command = {
         command: "cook",
         queue: ["cook"]
@@ -322,8 +267,6 @@ export function useDevice(deviceId: string | null) {
       currentAction === "add water" ||
       currentAction === "cook"
     ) {
-      setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
-      startCommandTimeout();
       const command = {
         command: "cancel",
         queue: []

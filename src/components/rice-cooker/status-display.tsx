@@ -16,7 +16,6 @@ const statusConfig = {
   DONE: { text: "COOKING COMPLETE", icon: Utensils, color: "text-primary" },
   CANCELED: { text: "OPERATION CANCELED", icon: XCircle, color: "text-destructive" },
   NOT_CONNECTED: { text: "NOT CONNECTED", icon: WifiOff, color: "text-muted-foreground" },
-  SENDING_COMMAND: { text: "CONNECTING...", icon: PlugZap, color: "text-accent-foreground" },
 };
 
 type StatusDisplayProps = {
@@ -33,7 +32,7 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
   const minutes = Math.floor(timeRemaining / 60);
   const seconds = timeRemaining % 60;
 
-  const isRunning = safeStatus === "DISPENSING" || safeStatus === "WASHING" || safeStatus === "COOKING" || safeStatus === "SENDING_COMMAND";
+  const isRunning = safeStatus === "DISPENSING" || safeStatus === "WASHING" || safeStatus === "COOKING";
   const isConnected = safeStatus !== 'NOT_CONNECTED';
 
   return (
@@ -52,15 +51,15 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex items-center justify-center gap-4">
-          <Icon className={cn("h-8 w-8", color, isRunning && safeStatus === 'SENDING_COMMAND' && "animate-spin")} />
+          <Icon className={cn("h-8 w-8", color, isRunning && "animate-spin")} />
           <h2 className={cn("text-3xl font-bold font-mono tracking-wider", isRunning ? 'text-accent-foreground' : 'text-foreground')}>
             {text}
-            { isConnected && safeStatus !== 'SENDING_COMMAND' && <span className="blinking-cursor ml-1">_</span> }
+            { isConnected && <span className="blinking-cursor ml-1">_</span> }
           </h2>
         </div>
         
         <div className="h-16">
-          {isRunning && safeStatus !== 'SENDING_COMMAND' && (
+          {isRunning && (
             <div className="space-y-2">
               <p className={cn("font-mono text-5xl font-bold", isRunning ? 'text-accent-foreground' : 'text-foreground')}>
                 {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
@@ -73,3 +72,4 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
     </Card>
   );
 }
+
