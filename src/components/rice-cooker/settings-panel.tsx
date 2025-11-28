@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -27,13 +28,13 @@ type SettingsPanelProps = {
 
 type CustomPreset = {
   name: string;
-  dispense: number;
-  wash: number;
-  cook: number;
+  pumpTime: number;
+  dispenseTime: number;
+  cookTime: number;
 };
 
 export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsPanelProps) {
-  const { dispenseDuration, washDuration, cookDuration } = durations;
+  const { pumpTime, dispenseTime, cookTime } = durations;
   
   const [customPresets, setCustomPresets] = useState<CustomPreset[]>([]);
   const [newPresetName, setNewPresetName] = useState("");
@@ -58,22 +59,22 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
   const handlePreset = (preset: 'small' | 'medium' | 'large') => {
     switch (preset) {
       case 'small':
-        handleSetDurations({ dispenseDuration: 3, washDuration: 10, cookDuration: 20 });
+        handleSetDurations({ pumpTime: 5, dispenseTime: 3, cookTime: 20 });
         break;
       case 'medium':
-        handleSetDurations({ dispenseDuration: 5, washDuration: 15, cookDuration: 30 });
+        handleSetDurations({ pumpTime: 10, dispenseTime: 5, cookTime: 30 });
         break;
       case 'large':
-        handleSetDurations({ dispenseDuration: 8, washDuration: 20, cookDuration: 45 });
+        handleSetDurations({ pumpTime: 15, dispenseTime: 8, cookTime: 45 });
         break;
     }
   };
 
   const handleCustomPreset = (preset: CustomPreset) => {
     handleSetDurations({
-      dispenseDuration: preset.dispense,
-      washDuration: preset.wash,
-      cookDuration: preset.cook,
+      pumpTime: preset.pumpTime,
+      dispenseTime: preset.dispenseTime,
+      cookTime: preset.cookTime,
     });
   };
 
@@ -82,9 +83,9 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
 
     const newPreset: CustomPreset = {
       name: newPresetName,
-      dispense: dispenseDuration,
-      wash: washDuration,
-      cook: cookDuration,
+      pumpTime: pumpTime,
+      dispenseTime: dispenseTime,
+      cookTime: cookTime,
     };
 
     const updatedPresets = [...customPresets, newPreset];
@@ -150,55 +151,57 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
 
         <div className="grid gap-4">
           <div className="flex items-center justify-between">
-            <Label htmlFor="dispense-duration" className="flex items-center gap-2 text-lg">
-              <Wheat className="h-5 w-5 text-primary/70" />
-              Dispense Rice
+            <Label htmlFor="pump-time" className="flex items-center gap-2 text-lg">
+              <Droplets className="h-5 w-5 text-primary/70" />
+              Add Water Time
             </Label>
-            <span className="font-mono text-lg">{dispenseDuration}s</span>
+            <span className="font-mono text-lg">{pumpTime}s</span>
           </div>
           <Slider
-            id="dispense-duration"
+            id="pump-time"
             min={1}
             max={30}
             step={1}
-            value={[dispenseDuration]}
-            onValueChange={(value) => handleSetDurations({ dispenseDuration: value[0] })}
+            value={[pumpTime]}
+            onValueChange={(value) => handleSetDurations({ pumpTime: value[0] })}
             disabled={isDisabled}
           />
         </div>
+
         <div className="grid gap-4">
           <div className="flex items-center justify-between">
-            <Label htmlFor="wash-duration" className="flex items-center gap-2 text-lg">
-              <Droplets className="h-5 w-5 text-primary/70" />
-              Dispense Water
+            <Label htmlFor="dispense-time" className="flex items-center gap-2 text-lg">
+              <Wheat className="h-5 w-5 text-primary/70" />
+              Dispense Rice Time
             </Label>
-            <span className="font-mono text-lg">{washDuration}s</span>
+            <span className="font-mono text-lg">{dispenseTime}s</span>
           </div>
           <Slider
-            id="wash-duration"
-            min={5}
-            max={60}
-            step={5}
-            value={[washDuration]}
-            onValueChange={(value) => handleSetDurations({ washDuration: value[0] })}
+            id="dispense-time"
+            min={1}
+            max={30}
+            step={1}
+            value={[dispenseTime]}
+            onValueChange={(value) => handleSetDurations({ dispenseTime: value[0] })}
             disabled={isDisabled}
           />
         </div>
+
         <div className="grid gap-4">
           <div className="flex items-center justify-between">
-            <Label htmlFor="cook-duration" className="flex items-center gap-2 text-lg">
+            <Label htmlFor="cook-time" className="flex items-center gap-2 text-lg">
               <CookingPot className="h-5 w-5 text-primary/70" />
               Cook Duration
             </Label>
-            <span className="font-mono text-lg">{cookDuration}s</span>
+            <span className="font-mono text-lg">{cookTime}s</span>
           </div>
           <Slider
-            id="cook-duration"
+            id="cook-time"
             min={10}
             max={120}
             step={1}
-            value={[cookDuration]}
-            onValueChange={(value) => handleSetDurations({ cookDuration: value[0] })}
+            value={[cookTime]}
+            onValueChange={(value) => handleSetDurations({ cookTime: value[0] })}
             disabled={isDisabled}
           />
         </div>

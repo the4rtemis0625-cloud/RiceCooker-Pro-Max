@@ -22,9 +22,9 @@ export type Status =
   | "NOT_CONNECTED";
 
 export interface DeviceSettings {
-  dispenseDuration: number;
-  washDuration: number;
-  cookDuration: number;
+  pumpTime: number;
+  dispenseTime: number;
+  cookTime: number;
 }
 
 export interface DeviceState {
@@ -42,9 +42,9 @@ export interface DeviceState {
 }
 
 const defaultSettings: DeviceSettings = {
-  dispenseDuration: 10,
-  washDuration: 5,
-  cookDuration: 30,
+  pumpTime: 5,
+  dispenseTime: 10,
+  cookTime: 30,
 };
 
 export function useDevice(deviceId: string | null) {
@@ -60,7 +60,6 @@ export function useDevice(deviceId: string | null) {
   // Function to send a command to the RTDB
   const sendCommand = useCallback((command: string) => {
     if (!deviceId || !database) return;
-    // Clear previous command before sending a new one
     const commandRef = ref(database, `devices/${deviceId}/command`);
     set(commandRef, command).catch((err) => {
       console.error("Failed to send command:", err);
@@ -82,7 +81,8 @@ export function useDevice(deviceId: string | null) {
     if (device?.settings && JSON.stringify(device.settings) !== JSON.stringify(localSettings)) {
       setLocalSettings(device.settings);
     }
-  }, [device?.settings, localSettings]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [device?.settings]);
 
 
   // Effect to listen for device state changes from RTDB
@@ -115,12 +115,17 @@ export function useDevice(deviceId: string | null) {
           const data = snapshot.val() as DeviceState;
           setDevice(data);
           if (data.settings && JSON.stringify(data.settings) !== JSON.stringify(localSettings)) {
-            setLocalSettings(data.settings);
+            // Make sure the settings in DB are valid numbers, otherwise use defaults
+            const saneSettings: DeviceSettings = {
+              pumpTime: typeof data.settings.pumpTime === 'number' ? data.settings.pumpTime : defaultSettings.pumpTime,
+              dispenseTime: typeof data.settings.dispenseTime === 'number' ? data.settings.dispenseTime : defaultSettings.dispenseTime,
+              cookTime: typeof data.settings.cookTime === 'number' ? data.settings.cookTime : defaultSettings.cookTime,
+            };
+            setLocalSettings(saneSettings);
           }
-          setError(null);
         } else {
           // If device doesn't exist, create it with default state
-          const defaultState: Partial<DeviceState> = {
+          const defaultState: Partial<DeviceState> & { settings: DeviceSettings } = {
             status: "READY",
             settings: defaultSettings,
             lastUpdated: serverTimestamp() as any,
@@ -160,7 +165,7 @@ export function useDevice(deviceId: string | null) {
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [deviceId, database, clearCurrentInterval]);
+  }, [deviceId, database, clearCurrentInterval, localSettings]);
 
   // Effect for client-side progress calculation
   useEffect(() => {
