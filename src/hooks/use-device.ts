@@ -88,15 +88,21 @@ export function useDevice(deviceId: string | null) {
           };
           setDoc(docRef, defaultState).catch((e) => {
              console.error("Error creating device document:", e);
-             setError("Could not initialize device. Please check permissions.");
+             setError(`Could not initialize device. Please check permissions. Details: ${e.message}`);
           });
           setDevice(defaultState);
         }
         setLoading(false);
       },
-      (err) => {
+      (err: any) => {
         console.error("Error listening to device document:", err);
-        setError("Could not connect to device. Check the device ID and your connection.");
+        let errorMessage = "Could not connect to device. Check the device ID and your connection.";
+        if (err.code === 'permission-denied') {
+            errorMessage = "Permission denied. You do not have access to this device's data.";
+        } else if (err.message.includes('offline')) {
+            errorMessage = "The app is offline. Please check your internet connection or Firebase configuration."
+        }
+        setError(errorMessage);
         setDevice(null);
         setLoading(false);
       }
@@ -142,9 +148,9 @@ export function useDevice(deviceId: string | null) {
     const docRef = doc(firestore, "devices", deviceId);
     try {
       await setDoc(docRef, { ...data, lastUpdated: serverTimestamp() }, { merge: true });
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error updating device:", e);
-      setError("Failed to update device state.");
+      setError(`Failed to update device state: ${e.message}`);
     }
   };
 
@@ -154,8 +160,9 @@ export function useDevice(deviceId: string | null) {
     const userRef = doc(firestore, "users", userId);
     try {
       await updateDoc(userRef, { deviceId: newDeviceId });
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error updating user's deviceId:", e);
+      setError(`Failed to save device ID: ${e.message}`);
       // Optionally show a toast to the user
     }
   };
