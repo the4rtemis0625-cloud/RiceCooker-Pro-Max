@@ -157,12 +157,16 @@ export function useDevice(deviceId: string | null) {
           }
           
           // Preserve SENDING_COMMAND status if it's currently active on the client
-          if (device?.status === 'SENDING_COMMAND' && newStatus === 'READY' && data.currentAction === 'idle') {
-             // If we get a READY from backend but we are sending a command, ignore the READY
-             // until the device really starts the action or we time out.
-          } else {
-             setDevice({ ...data, status: newStatus, settings: saneSettings });
-          }
+          setDevice(prevDevice => {
+            if (prevDevice?.status === 'SENDING_COMMAND' && newStatus === 'READY' && data.currentAction === 'idle') {
+                // If we are sending a command, and the device reports back 'idle', it means it hasn't started the new action yet.
+                // We keep the 'SENDING_COMMAND' status to give it time to start. The timeout will handle if it never starts.
+                // But we still update the underlying data from the device.
+                return { ...data, status: 'SENDING_COMMAND', settings: saneSettings };
+            }
+            // In all other cases, we accept the new status from the device.
+            return { ...data, status: newStatus, settings: saneSettings };
+          });
 
 
         } else {
@@ -209,7 +213,7 @@ export function useDevice(deviceId: string | null) {
         clearTimeout(commandTimeoutRef.current);
       }
     };
-  }, [deviceId, database, clearCurrentInterval, device?.status]);
+  }, [deviceId, database, clearCurrentInterval]);
 
   useEffect(() => {
     clearCurrentInterval();
@@ -338,3 +342,5 @@ export function useDevice(deviceId: string | null) {
     cancelDevice,
   };
 }
+
+    
