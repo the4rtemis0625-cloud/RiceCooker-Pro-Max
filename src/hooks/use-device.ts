@@ -154,8 +154,6 @@ export function useDevice(deviceId: string | null) {
           
           const currentUiStatus = device?.status;
           
-          // If we just sent a command, wait for the device to actually change its state
-          // before we update the UI away from "SENDING_COMMAND"
           if(currentUiStatus === 'SENDING_COMMAND' && newStatus === 'READY') {
              // Do nothing, wait for device to move to a non-ready state
           } else {
@@ -263,15 +261,6 @@ export function useDevice(deviceId: string | null) {
       setError(err.message || "Failed to send command to device.");
       if (device) setDevice(device);
     });
-
-    // Automatically reset the command flags after 1 second
-    setTimeout(() => {
-        update(ref(database, `devices/${deviceId}/command`), {
-            dispense: false,
-            cook: false,
-            cancel: false
-        });
-    }, 1000);
   };
 
   const startDevice = () => {
