@@ -11,6 +11,7 @@ import {
   update,
   serverTimestamp,
 } from "firebase/database";
+import { useToast } from "./use-toast";
 
 export type Status =
   | "READY"
@@ -50,6 +51,7 @@ const defaultSettings: DeviceSettings = {
 
 export function useDevice(deviceId: string | null) {
   const database = useDatabase();
+  const { toast } = useToast();
   const [device, setDevice] = useState<DeviceState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,8 +63,8 @@ export function useDevice(deviceId: string | null) {
   // Function to send a command to the RTDB
   const sendCommand = useCallback((command: string) => {
     if (!deviceId || !database) return;
-    const commandRef = ref(database, `devices/${deviceId}/command`);
-    set(commandRef, command).catch((err) => {
+    const deviceRef = ref(database, `devices/${deviceId}`);
+    update(deviceRef, { command: command }).catch((err) => {
       console.error("Failed to send command:", err);
       setError(err.message || "Failed to send command to device.");
     });
@@ -190,6 +192,7 @@ export function useDevice(deviceId: string | null) {
       }, 500); 
     }
 
+    // If the status is no longer "SENDING_COMMAND", clear the timeout.
     if (device?.status !== "SENDING_COMMAND" && commandTimeoutRef.current) {
         clearTimeout(commandTimeoutRef.current);
         commandTimeoutRef.current = null;
@@ -228,7 +231,11 @@ export function useDevice(deviceId: string | null) {
     commandTimeoutRef.current = setTimeout(() => {
         setDevice((prev) => {
             if (prev?.status === "SENDING_COMMAND") {
-                setError("Device did not respond in time. Please try again.");
+                toast({
+                  variant: "destructive",
+                  title: "Device Connection Timeout",
+                  description: "The device did not respond. Please check its connection and try again.",
+                });
                 return { ...prev, status: "READY" };
             }
             return prev;
@@ -237,7 +244,8 @@ export function useDevice(deviceId: string | null) {
   };
 
   const startDevice = () => {
-    if (device && (device.status === 'READY' || device.status === 'DONE' || device.status === 'CANCELED')) {
+    const currentStatus = device?.status;
+    if (currentStatus === 'READY' || currentStatus === 'DONE' || currentStatus === 'CANCELED') {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
       sendCommand("start");
@@ -245,7 +253,8 @@ export function useDevice(deviceId: string | null) {
   };
 
   const cookDevice = () => {
-    if (device && (device.status === 'READY' || device.status === 'DONE' || device.status === 'CANCELED')) {
+    const currentStatus = device?.status;
+    if (currentStatus === 'READY' || currentStatus === 'DONE' || currentStatus === 'CANCELED') {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
       sendCommand("cook");
@@ -253,11 +262,11 @@ export function useDevice(deviceId: string | null) {
   };
 
   const cancelDevice = () => {
+    const currentStatus = device?.status;
     if (
-      device &&
-      (device.status === "DISPENSING" ||
-        device.status === "WASHING" ||
-        device.status === "COOKING")
+      currentStatus === "DISPENSING" ||
+      currentStatus === "WASHING" ||
+      currentStatus === "COOKING"
     ) {
       setDevice(prev => prev ? { ...prev, status: 'SENDING_COMMAND' } : null);
       startCommandTimeout();
@@ -275,5 +284,3 @@ export function useDevice(deviceId: string | null) {
     cancelDevice,
   };
 }
-
-    
