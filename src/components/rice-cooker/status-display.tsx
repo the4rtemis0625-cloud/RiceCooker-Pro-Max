@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { DeviceState } from "@/hooks/use-device";
@@ -10,7 +11,7 @@ import { Timestamp } from "firebase/firestore";
 const statusConfig = {
   READY: { text: "SYSTEM READY", icon: CheckCircle, color: "text-primary" },
   DISPENSING: { text: "DISPENSING RICE", icon: Wheat, color: "text-accent-foreground" },
-  WASHING: { text: "WASHING CYCLE", icon: Droplets, color: "text-accent-foreground" },
+  WASHING: { text: "Adding Water", icon: Droplets, color: "text-accent-foreground" },
   COOKING: { text: "COOKING", icon: Thermometer, color: "text-accent-foreground" },
   DONE: { text: "COOKING COMPLETE", icon: Utensils, color: "text-primary" },
   CANCELED: { text: "OPERATION CANCELED", icon: XCircle, color: "text-destructive" },
