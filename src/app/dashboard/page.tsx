@@ -22,6 +22,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!auth) {
+        // Firebase Auth service is not ready yet.
         return;
     }
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
