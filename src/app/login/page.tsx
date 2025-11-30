@@ -36,18 +36,17 @@ export default function LoginPage() {
       <div className="absolute bottom-8 right-8 w-32 h-32 opacity-90 animate-slow-spin">
         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
           {/* Bowl */}
-          <path d="M 30,110 C 30,170 170,170 170,110 Z" fill="#a0c4ff" stroke="#6b9cff" strokeWidth="4" />
+          <path d="M 40 180 C 10 160, 10 90, 40 70 L 160 70 C 190 90, 190 160, 160 180 Z" fill="#e59866" stroke="#c0392b" stroke-width="5" />
           {/* Rice */}
-          <path d="M 40 115 C 20 80, 180 80, 160 115" fill="#FFFFFF" stroke="#f0f0f0" strokeWidth="3" />
-          <path d="M 45 110 C 30 80, 90 70, 100 80 C 110 70, 170 80, 155 110" fill="#FFFFFF" stroke="#f0f0f0" strokeWidth="3" />
-          <path d="M 50 105 C 40 85, 80 80, 100 85 C 120 80, 160 85, 150 105" fill="#FFFFFF" stroke="#f0f0f0" strokeWidth="3" />
-          {/* Face */}
-          <circle cx="75" cy="140" r="10" fill="black" />
-          <circle cx="125" cy="140" r="10" fill="black" />
-          <path d="M 90 150 C 95 160, 105 160, 110 150 Z" fill="white" stroke="black" strokeWidth="3"/>
-          {/* Blush */}
-          <ellipse cx="60" cy="145" rx="10" ry="6" fill="#ffc8dd" opacity="0.8" />
-          <ellipse cx="140" cy="145" rx="10" ry="6" fill="#ffc8dd" opacity="0.8" />
+          <path d="M 50 80 C 40 60, 160 60, 150 80 C 155 70, 145 55, 100 55 C 55 55, 45 70, 50 80 Z" fill="#fdfdfd" />
+          <path d="M70,75 C72,73 74,73 76,75" stroke="#e6e6e6" fill="none" stroke-width="3" stroke-linecap="round"/>
+          <path d="M90,72 C92,70 94,70 96,72" stroke="#e6e6e6" fill="none" stroke-width="3" stroke-linecap="round"/>
+          <path d="M110,75 C112,73 114,73 116,75" stroke="#e6e6e6" fill="none" stroke-width="3" stroke-linecap="round"/>
+          <path d="M130,72 C132,70 134,70 136,72" stroke="#e6e6e6" fill="none" stroke-width="3" stroke-linecap="round"/>
+          <path d="M80,82 C82,80 84,80 86,82" stroke="#e6e6e6" fill="none" stroke-width="3" stroke-linecap="round"/>
+          <path d="M100,85 C102,83 104,83 106,85" stroke="#e6e6e6" fill="none" stroke-width="3" stroke-linecap="round"/>
+          <path d="M120,82 C122,80 124,80 126,82" stroke="#e6e6e6" fill="none" stroke-width="3" stroke-linecap="round"/>
+          <rect x="35" y="65" width="130" height="10" rx="5" fill="#f5cba7" />
         </svg>
       </div>
 
