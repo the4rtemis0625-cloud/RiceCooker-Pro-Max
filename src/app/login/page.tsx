@@ -35,23 +35,19 @@ export default function LoginPage() {
 
       <div className="absolute bottom-8 right-8 w-32 h-32 opacity-90 animate-slow-spin">
         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-          {/* Body */}
-          <path d="M 30 180 C 10 160, 10 100, 30 80 L 170 80 C 190 100, 190 160, 170 180 Z" fill="#e57373" stroke="#c25a5a" strokeWidth="4"/>
-          {/* Lid */}
-          <path d="M 40 80 C 20 60, 70 20, 100 20 C 130 20, 180 60, 160 80 Z" fill="#e0e0e0" stroke="#bdbdbd" strokeWidth="4"/>
-          {/* Lid Handle */}
-          <ellipse cx="100" cy="20" rx="15" ry="5" fill="#b0bec5" stroke="#78909c" strokeWidth="2"/>
-          <ellipse cx="100" cy="15" rx="10" ry="3" fill="#cfd8dc" />
+          {/* Bowl */}
+          <path d="M 30,110 C 30,170 170,170 170,110 Z" fill="#a0c4ff" stroke="#6b9cff" strokeWidth="4" />
           {/* Rice */}
-          <path d="M 50 80 C 40 50, 160 50, 150 80" fill="white" stroke="#eee" strokeWidth="2" />
-          <text x="60" y="75" fontSize="10" fill="#333">,,,,</text>
-          <text x="80" y="70" fontSize="10" fill="#333">'''</text>
-          <text x="100" y="75" fontSize="10" fill="#333">,,,</text>
-          <text x="120" y="72" fontSize="10" fill="#333">''',</text>
-           {/* Control Panel */}
-          <rect x="75" y="120" width="50" height="30" rx="5" fill="#eeeeee" stroke="#bdbdbd" strokeWidth="2" />
-          <rect x="82" y="125" width="15" height="8" rx="2" fill="#ffb74d" />
-          <rect x="82" y="135" width="36" height="10" rx="2" fill="#90a4ae" />
+          <path d="M 40 115 C 20 80, 180 80, 160 115" fill="#FFFFFF" stroke="#f0f0f0" strokeWidth="3" />
+          <path d="M 45 110 C 30 80, 90 70, 100 80 C 110 70, 170 80, 155 110" fill="#FFFFFF" stroke="#f0f0f0" strokeWidth="3" />
+          <path d="M 50 105 C 40 85, 80 80, 100 85 C 120 80, 160 85, 150 105" fill="#FFFFFF" stroke="#f0f0f0" strokeWidth="3" />
+          {/* Face */}
+          <circle cx="75" cy="140" r="10" fill="black" />
+          <circle cx="125" cy="140" r="10" fill="black" />
+          <path d="M 90 150 C 95 160, 105 160, 110 150 Z" fill="white" stroke="black" strokeWidth="3"/>
+          {/* Blush */}
+          <ellipse cx="60" cy="145" rx="10" ry="6" fill="#ffc8dd" opacity="0.8" />
+          <ellipse cx="140" cy="145" rx="10" ry="6" fill="#ffc8dd" opacity="0.8" />
         </svg>
       </div>
 
