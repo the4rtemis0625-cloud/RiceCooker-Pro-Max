@@ -22,6 +22,15 @@
   }
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(2deg);
+  }
+}
+
 @layer base {
   :root {
     --background: 40 50% 98%; /* #fdfaf7 */
@@ -107,5 +116,8 @@
 @layer utilities {
   .animate-fall {
     animation: fall 2s linear infinite;
+  }
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
   }
 }
