@@ -55,6 +55,7 @@ const defaultSettings: DeviceSettings = {
 export function useDevice(deviceId: string | null) {
   const database = useDatabase();
   const [device, setDevice] = useState<DeviceState | null>(null);
+  const [uiStatus, setUiStatus] = useState<Status | null>(null);
   const [durations, setDurations] = useState<DeviceSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -200,45 +201,66 @@ export function useDevice(deviceId: string | null) {
       }
     };
   }, [deviceId, database, clearCurrentInterval]);
-
-  useEffect(() => {
-    return () => clearCurrentInterval();
-  }, [clearCurrentInterval]);
   
+  useEffect(() => {
+    clearCurrentInterval();
+    if (!device || !device.currentStage) {
+      setTimeRemaining(0);
+      setProgress(0);
+      return;
+    }
+
+    const { name, startTime, duration } = device.currentStage;
+    
+    let totalDuration = 0;
+    if (name === "DISPENSING") {
+      totalDuration = (durations.pumpTime + durations.dispenseTime);
+    } else if (name === "COOKING") {
+      totalDuration = duration;
+    } else {
+        return;
+    }
+
+    if(totalDuration <= 0) return;
+
+    intervalRef.current = setInterval(() => {
+      const now = Date.now();
+      const elapsed = (now - startTime) / 1000;
+      const remaining = Math.max(0, totalDuration - elapsed);
+      const currentProgress = Math.min(100, (elapsed / totalDuration) * 100);
+      
+      setTimeRemaining(remaining);
+      setProgress(currentProgress);
+
+      if (remaining === 0) {
+        clearCurrentInterval();
+      }
+    }, 500);
+
+    return () => clearCurrentInterval();
+  }, [device, durations, clearCurrentInterval]);
+
   const sendCommandObject = (commandData: object) => {
     if (!deviceId || !database) return;
     
-    if (device) {
-      const lastStatus = device.status;
-      setDevice({ ...device, status: "SENDING_COMMAND" });
-      
-      commandTimeoutRef.current = setTimeout(() => {
-          setError("Device did not respond to the command.");
-          setDevice({ ...device, status: lastStatus });
-          commandTimeoutRef.current = null;
-      }, 5000);
-    }
-    
     const deviceRef = ref(database, `devices/${deviceId}`);
     update(deviceRef, commandData).catch((err) => {
-      if (commandTimeoutRef.current) {
-          clearTimeout(commandTimeoutRef.current);
-          commandTimeoutRef.current = null;
-      }
       console.error("Failed to send command:", err);
       setError(err.message || "Failed to send command to device.");
-      if (device) setDevice(device);
     });
   };
 
   const startDevice = () => {
+    setUiStatus('DISPENSING');
+    setTimeout(() => {
+        setUiStatus(null);
+    }, 7000);
+
     sendCommandObject({
       "command/add_water": true,
       "command/dispense": true,
       "command/cook": false,
       "command/cancel": false,
-      "settings/dispenseDuration": durations.dispenseTime,
-      "settings/washDuration": durations.pumpTime,
       "currentAction": "dispense rice"
     });
   };
@@ -249,12 +271,13 @@ export function useDevice(deviceId: string | null) {
       "command/dispense": false,
       "command/add_water": false,
       "command/cancel": false,
-      "settings/cookDuration": durations.cookTime,
+      "settings/cookDuration": durations.cookTime * 60,
       "currentAction": "cook"
     });
   };
 
   const cancelDevice = () => {
+    if (!deviceId || !database) return;
     const currentAction = device?.currentAction;
     if (
       currentAction === "dispense rice" ||
@@ -275,6 +298,7 @@ export function useDevice(deviceId: string | null) {
 
   return {
     device,
+    uiStatus,
     durations,
     loading,
     error,

@@ -5,7 +5,7 @@ import type { DeviceState } from "@/hooks/use-device";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { CheckCircle, Loader, XCircle, Thermometer, Wheat, Droplets, Utensils, WifiOff, PlugZap, Hourglass } from "lucide-react";
-import { Timestamp } from "firebase/firestore";
+import { Progress } from "@/components/ui/progress";
 
 const statusConfig = {
   READY: { text: "SYSTEM READY", icon: CheckCircle, color: "text-primary" },
@@ -24,6 +24,12 @@ type StatusDisplayProps = {
   progress: number;
   deviceId: string;
 };
+
+function formatTime(seconds: number) {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
 
 export function StatusDisplay({ status, timeRemaining, progress, deviceId }: StatusDisplayProps) {
   const safeStatus = status || 'NOT_CONNECTED';
@@ -69,12 +75,19 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
         </div>
 
         <div className="flex items-center justify-center gap-4 relative z-10 min-h-[7rem]">
-          <Icon className={cn("h-8 w-8", color, isRunning && "animate-spin")} />
+          <Icon className={cn("h-8 w-8", color, (isRunning && safeStatus === 'COOKING') && "animate-spin")} />
           <h2 className={cn("text-3xl font-bold font-mono tracking-wider", isRunning ? 'text-accent-foreground' : 'text-foreground')}>
             {text}
-            { isConnected && <span className="blinking-cursor ml-1">_</span> }
+            { (isConnected && !isRunning) && <span className="blinking-cursor ml-1">_</span> }
           </h2>
         </div>
+
+        {isRunning && (
+            <div className="space-y-3 relative z-10">
+                <Progress value={progress} className="w-full" />
+                <p className="text-sm font-mono text-accent-foreground">{formatTime(timeRemaining)}</p>
+            </div>
+        )}
         
       </CardContent>
     </Card>

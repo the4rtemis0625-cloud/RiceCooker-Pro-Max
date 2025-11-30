@@ -24,7 +24,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const database = useDatabase();
   const auth = useAuth();
 
-  const { device, durations, loading, error, setDurations, startDevice, cookDevice, cancelDevice, timeRemaining, progress } = useDevice(deviceId);
+  const { device, uiStatus, durations, loading, error, setDurations, startDevice, cookDevice, cancelDevice, timeRemaining, progress } = useDevice(deviceId);
 
   const updateDeviceIdInUserProfile = (newDeviceId: string | null) => {
     const user = auth?.currentUser;
@@ -68,7 +68,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   
   const currentDevice = device ?? { status: 'NOT_CONNECTED' } as Partial<DeviceState>;
   const isConnected = currentDevice.status !== 'NOT_CONNECTED';
-  const isRunning = currentDevice.status === "DISPENSING" || currentDevice.status === "WASHING" || currentDevice.status === "COOKING";
+  const isRunning = uiStatus === 'DISPENSING' || currentDevice.status === "DISPENSING" || currentDevice.status === "WASHING" || currentDevice.status === "COOKING";
   
   const areActionButtonsDisabled = !isConnected || isRunning || currentDevice.status === 'SENDING_COMMAND';
 
@@ -92,7 +92,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
         />
         
         <StatusDisplay
-            status={currentDevice.status as any}
+            status={uiStatus || currentDevice.status as any}
             timeRemaining={timeRemaining}
             progress={progress}
             deviceId={deviceId ?? ""}
