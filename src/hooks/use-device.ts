@@ -121,7 +121,7 @@ export function useDevice(deviceId: string | null) {
           const saneSettings: DeviceSettings = {
             pumpTime: typeof data.settings?.pumpTime === 'number' ? data.settings.pumpTime : defaultSettings.pumpTime,
             dispenseTime: typeof data.settings?.dispenseTime === 'number' ? data.settings.dispenseTime : defaultSettings.dispenseTime,
-            cookTime: typeof data.settings?.cookTime === 'number' ? data.settings.cookTime : defaultSettings.cookTime,
+            cookTime: typeof data.settings?.cookTime === 'number' ? Math.round(data.settings.cookTime / 60) : defaultSettings.cookTime,
           };
           
           setDurations(saneSettings);
@@ -203,37 +203,39 @@ export function useDevice(deviceId: string | null) {
 
   useEffect(() => {
     clearCurrentInterval();
-
-    const currentStage = device?.currentStage;
-    const isRunning = device?.status === 'DISPENSING' || device?.status === 'WASHING' || device?.status === 'COOKING';
-
-    if (isRunning && currentStage?.startTime && currentStage?.duration) {
-      const { startTime, duration } = currentStage;
-      
-      const updateTimer = () => {
-        const now = Date.now();
-        const elapsed = (now - startTime) / 1000; // startTime is a millis timestamp from RTDB
-        const remaining = Math.max(0, duration - elapsed);
-        const newProgress = Math.min(100, (elapsed / duration) * 100);
-
-        setTimeRemaining(Math.round(remaining));
-        setProgress(newProgress);
-
-        if (remaining <= 0) {
+  
+    if (device && device.currentStage && device.currentStage.startTime && device.currentStage.duration > 0) {
+      const { startTime, duration } = device.currentStage;
+      const isRunning = device.status === 'DISPENSING' || device.status === 'WASHING' || device.status === 'COOKING';
+  
+      if (isRunning) {
+        const updateTimer = () => {
+          const now = Date.now();
+          const elapsed = (now - startTime) / 1000; // in seconds
+          const remaining = Math.max(0, duration - elapsed);
+          const newProgress = Math.min(100, (elapsed / duration) * 100);
+  
+          setTimeRemaining(Math.round(remaining));
+          setProgress(newProgress);
+  
+          if (remaining <= 0) {
             clearCurrentInterval();
-        }
-      };
-
-      updateTimer(); // Run immediately to avoid 1-second delay
-      intervalRef.current = setInterval(updateTimer, 500); 
-
-    } else {
+          }
+        };
+  
+        updateTimer();
+        intervalRef.current = setInterval(updateTimer, 500);
+      } else {
         setTimeRemaining(0);
         setProgress(0);
+      }
+    } else {
+      setTimeRemaining(0);
+      setProgress(0);
     }
-
+  
     return () => clearCurrentInterval();
-  }, [device?.status, device?.currentStage, clearCurrentInterval]);
+  }, [device, clearCurrentInterval]);
   
   const sendCommandObject = (commandData: object) => {
     if (!deviceId || !database) return;
@@ -281,7 +283,6 @@ export function useDevice(deviceId: string | null) {
       "command/add_water": false,
       "command/cancel": false,
       "settings/cookDuration": durations.cookTime * 60, // convert minutes to seconds
-      "queue": ["cook"],
       "currentAction": "cook"
     });
   };
@@ -299,7 +300,8 @@ export function useDevice(deviceId: string | null) {
         "command/dispense": false,
         "command/cook": false,
         "command/add_water": false,
-        queue: []
+        queue: [],
+        "currentAction": "canceled"
       });
     }
   };
