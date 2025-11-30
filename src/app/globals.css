@@ -13,6 +13,19 @@
   animation: blink 1s step-end infinite;
 }
 
+@keyframes slide-horizontal {
+  0%, 100% {
+    transform: translateX(-20%);
+  }
+  50% {
+    transform: translateX(20%);
+  }
+}
+
+.animate-slide-horizontal {
+  animation: slide-horizontal 10s ease-in-out infinite;
+}
+
 @layer base {
   :root {
     --background: 40 50% 98%; /* #fdfaf7 */
