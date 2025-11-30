@@ -13,20 +13,6 @@
   animation: blink 1s step-end infinite;
 }
 
-@keyframes gentle-float {
-  0%, 100% {
-    transform: translate(0, 0) rotate(-3deg);
-  }
-  50% {
-    transform: translate(-15px, 10px) rotate(3deg);
-  }
-}
-
-.animate-gentle-float {
-  animation: gentle-float 12s ease-in-out infinite;
-}
-
-
 @layer base {
   :root {
     --background: 40 50% 98%; /* #fdfaf7 */
