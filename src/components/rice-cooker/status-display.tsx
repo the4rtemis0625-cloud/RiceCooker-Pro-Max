@@ -20,18 +20,10 @@ const statusConfig = {
 
 type StatusDisplayProps = {
   status: DeviceState['status'];
-  timeRemaining: number;
-  progress: number;
   deviceId: string;
 };
 
-function formatTime(seconds: number) {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-}
-
-export function StatusDisplay({ status, timeRemaining, progress, deviceId }: StatusDisplayProps) {
+export function StatusDisplay({ status, deviceId }: StatusDisplayProps) {
   const safeStatus = status || 'NOT_CONNECTED';
   const config = statusConfig[safeStatus as keyof typeof statusConfig] || statusConfig.NOT_CONNECTED;
   const { text, icon: Icon, color } = config;
@@ -81,13 +73,6 @@ export function StatusDisplay({ status, timeRemaining, progress, deviceId }: Sta
             { (isConnected && !isRunning) && <span className="blinking-cursor ml-1">_</span> }
           </h2>
         </div>
-
-        {isRunning && (
-            <div className="space-y-3 relative z-10">
-                <Progress value={progress} className="w-full" />
-                <p className="text-sm font-mono text-accent-foreground">{formatTime(timeRemaining)}</p>
-            </div>
-        )}
         
       </CardContent>
     </Card>

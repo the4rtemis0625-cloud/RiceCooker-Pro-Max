@@ -24,7 +24,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const database = useDatabase();
   const auth = useAuth();
 
-  const { device, uiStatus, durations, loading, error, setDurations, startDevice, cookDevice, cancelDevice, timeRemaining, progress } = useDevice(deviceId);
+  const { device, uiStatus, durations, loading, error, setDurations, startDevice, cookDevice, cancelDevice } = useDevice(deviceId);
 
   const updateDeviceIdInUserProfile = (newDeviceId: string | null) => {
     const user = auth?.currentUser;
@@ -93,8 +93,6 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
         
         <StatusDisplay
             status={uiStatus || currentDevice.status as any}
-            timeRemaining={timeRemaining}
-            progress={progress}
             deviceId={deviceId ?? ""}
         />
 

@@ -59,18 +59,8 @@ export function useDevice(deviceId: string | null) {
   const [durations, setDurations] = useState<DeviceSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState(0);
-  const [progress, setProgress] = useState(0);
 
   const commandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const clearCurrentInterval = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
 
   const setDurationsCallback = useCallback((newSettings: Partial<DeviceSettings>) => {
       if (!deviceId || !database) return;
@@ -79,7 +69,11 @@ export function useDevice(deviceId: string | null) {
       const currentSettings = { ...durations, ...newSettings};
       setDurations(currentSettings);
 
-      update(dbRef, newSettings).catch((err) => {
+      update(dbRef, {
+        dispenseDuration: currentSettings.dispenseTime,
+        washDuration: currentSettings.pumpTime,
+        cookDuration: currentSettings.cookTime * 60,
+      }).catch((err) => {
         console.error("Failed to update settings in RTDB:", err);
         setError(err.message || "Failed to save settings.");
       });
@@ -100,7 +94,6 @@ export function useDevice(deviceId: string | null) {
       });
       setDurations(defaultSettings);
       setLoading(false);
-      clearCurrentInterval();
       return;
     }
 
@@ -117,12 +110,12 @@ export function useDevice(deviceId: string | null) {
         }
 
         if (snapshot.exists()) {
-          const data = snapshot.val() as Partial<DeviceState & { settings: DeviceSettings }>;
+          const data = snapshot.val() as Partial<DeviceState & { settings: { dispenseDuration: number; washDuration: number; cookDuration: number } }>;
           
           const saneSettings: DeviceSettings = {
-            pumpTime: typeof data.settings?.pumpTime === 'number' ? data.settings.pumpTime : defaultSettings.pumpTime,
-            dispenseTime: typeof data.settings?.dispenseTime === 'number' ? data.settings.dispenseTime : defaultSettings.dispenseTime,
-            cookTime: typeof data.settings?.cookTime === 'number' ? Math.round(data.settings.cookTime) : defaultSettings.cookTime,
+            pumpTime: typeof data.settings?.washDuration === 'number' ? data.settings.washDuration : defaultSettings.pumpTime,
+            dispenseTime: typeof data.settings?.dispenseDuration === 'number' ? data.settings.dispenseDuration : defaultSettings.dispenseTime,
+            cookTime: typeof data.settings?.cookDuration === 'number' ? Math.round(data.settings.cookDuration / 60) : defaultSettings.cookTime,
           };
           
           setDurations(saneSettings);
@@ -158,7 +151,11 @@ export function useDevice(deviceId: string | null) {
 
         } else {
           const defaultState = {
-            settings: defaultSettings,
+            settings: {
+              dispenseDuration: defaultSettings.dispenseTime,
+              washDuration: defaultSettings.pumpTime,
+              cookDuration: defaultSettings.cookTime * 60,
+            },
             lastUpdated: serverTimestamp(),
             currentAction: "idle",
             command: { dispense: false, cook: false, cancel: false, add_water: false }
@@ -195,50 +192,12 @@ export function useDevice(deviceId: string | null) {
 
     return () => {
       off(dbRef, "value", listener);
-      clearCurrentInterval();
       if(commandTimeoutRef.current) {
         clearTimeout(commandTimeoutRef.current);
       }
     };
-  }, [deviceId, database, clearCurrentInterval]);
+  }, [deviceId, database]);
   
-  useEffect(() => {
-    clearCurrentInterval();
-    if (!device || !device.currentStage) {
-      setTimeRemaining(0);
-      setProgress(0);
-      return;
-    }
-
-    const { name, startTime, duration } = device.currentStage;
-    
-    let totalDuration = 0;
-    if (name === "DISPENSING") {
-      totalDuration = (durations.pumpTime + durations.dispenseTime);
-    } else if (name === "COOKING") {
-      totalDuration = duration;
-    } else {
-        return;
-    }
-
-    if(totalDuration <= 0) return;
-
-    intervalRef.current = setInterval(() => {
-      const now = Date.now();
-      const elapsed = (now - startTime) / 1000;
-      const remaining = Math.max(0, totalDuration - elapsed);
-      const currentProgress = Math.min(100, (elapsed / totalDuration) * 100);
-      
-      setTimeRemaining(remaining);
-      setProgress(currentProgress);
-
-      if (remaining === 0) {
-        clearCurrentInterval();
-      }
-    }, 500);
-
-    return () => clearCurrentInterval();
-  }, [device, durations, clearCurrentInterval]);
 
   const sendCommandObject = (commandData: object) => {
     if (!deviceId || !database) return;
@@ -261,6 +220,8 @@ export function useDevice(deviceId: string | null) {
       "command/dispense": true,
       "command/cook": false,
       "command/cancel": false,
+      "settings/dispenseDuration": durations.dispenseTime,
+      "settings/washDuration": durations.pumpTime,
       "currentAction": "dispense rice"
     });
   };
@@ -306,7 +267,5 @@ export function useDevice(deviceId: string | null) {
     startDevice,
     cookDevice,
     cancelDevice,
-    timeRemaining,
-    progress,
   };
 }
