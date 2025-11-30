@@ -153,14 +153,7 @@ export function useDevice(deviceId: string | null) {
               break;
           }
           
-          const currentUiStatus = device?.status;
-          
-          if(currentUiStatus === 'SENDING_COMMAND' && (newStatus === 'READY' || newStatus === 'DONE' || newStatus === 'CANCELED')) {
-             // Do nothing, wait for device to move to a non-ready state
-          } else {
-            setDevice({ ...data, status: newStatus, currentAction } as DeviceState);
-          }
-
+          setDevice({ ...data, status: newStatus, currentAction } as DeviceState);
 
         } else {
           const defaultState = {
@@ -244,13 +237,7 @@ export function useDevice(deviceId: string | null) {
   
   const sendCommandObject = (commandData: object) => {
     if (!deviceId || !database) return;
-    const currentAction = device?.currentAction;
     
-    if(currentAction !== 'idle' && currentAction !== 'done' && currentAction !== 'canceled' && currentAction !== null && currentAction !== undefined){
-        setError("Device is currently busy.");
-        return;
-    }
-
     if (device) {
       const lastStatus = device.status;
       setDevice({ ...device, status: "SENDING_COMMAND" });
@@ -282,7 +269,8 @@ export function useDevice(deviceId: string | null) {
       "command/cancel": false,
       "settings/dispenseDuration": durations.dispenseTime,
       "settings/washDuration": durations.pumpTime,
-      queue: ["add water", "dispense rice"]
+      "queue": ["add water", "dispense rice"],
+      "currentAction": "dispense rice"
     });
   };
 
@@ -293,7 +281,8 @@ export function useDevice(deviceId: string | null) {
       "command/add_water": false,
       "command/cancel": false,
       "settings/cookDuration": durations.cookTime * 60, // convert minutes to seconds
-      queue: ["cook"]
+      "queue": ["cook"],
+      "currentAction": "cook"
     });
   };
 
