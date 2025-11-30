@@ -206,7 +206,7 @@ export function useDevice(deviceId: string | null) {
         clearTimeout(commandTimeoutRef.current);
       }
     };
-  }, [deviceId, database, clearCurrentInterval, device?.status]);
+  }, [deviceId, database, clearCurrentInterval]);
 
   useEffect(() => {
     clearCurrentInterval();
