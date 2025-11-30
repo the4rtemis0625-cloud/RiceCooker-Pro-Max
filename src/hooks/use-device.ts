@@ -202,40 +202,8 @@ export function useDevice(deviceId: string | null) {
   }, [deviceId, database, clearCurrentInterval]);
 
   useEffect(() => {
-    clearCurrentInterval();
-  
-    if (device && device.currentStage && device.currentStage.startTime && device.currentStage.duration > 0) {
-      const { startTime, duration } = device.currentStage;
-      const isRunning = device.status === 'DISPENSING' || device.status === 'WASHING' || device.status === 'COOKING';
-  
-      if (isRunning) {
-        const updateTimer = () => {
-          const now = Date.now();
-          const elapsed = (now - startTime) / 1000; // in seconds
-          const remaining = Math.max(0, duration - elapsed);
-          const newProgress = Math.min(100, (elapsed / duration) * 100);
-  
-          setTimeRemaining(Math.round(remaining));
-          setProgress(newProgress);
-  
-          if (remaining <= 0) {
-            clearCurrentInterval();
-          }
-        };
-  
-        updateTimer();
-        intervalRef.current = setInterval(updateTimer, 500);
-      } else {
-        setTimeRemaining(0);
-        setProgress(0);
-      }
-    } else {
-      setTimeRemaining(0);
-      setProgress(0);
-    }
-  
     return () => clearCurrentInterval();
-  }, [device, clearCurrentInterval]);
+  }, [clearCurrentInterval]);
   
   const sendCommandObject = (commandData: object) => {
     if (!deviceId || !database) return;
