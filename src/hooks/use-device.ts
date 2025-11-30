@@ -121,7 +121,7 @@ export function useDevice(deviceId: string | null) {
           const saneSettings: DeviceSettings = {
             pumpTime: typeof data.settings?.pumpTime === 'number' ? data.settings.pumpTime : defaultSettings.pumpTime,
             dispenseTime: typeof data.settings?.dispenseTime === 'number' ? data.settings.dispenseTime : defaultSettings.dispenseTime,
-            cookTime: typeof data.settings?.cookTime === 'number' ? Math.round(data.settings.cookTime / 60) : defaultSettings.cookTime,
+            cookTime: typeof data.settings?.cookTime === 'number' ? Math.round(data.settings.cookTime) : defaultSettings.cookTime,
           };
           
           setDurations(saneSettings);
@@ -271,7 +271,6 @@ export function useDevice(deviceId: string | null) {
       "command/cancel": false,
       "settings/dispenseDuration": durations.dispenseTime,
       "settings/washDuration": durations.pumpTime,
-      "queue": ["add water", "dispense rice"],
       "currentAction": "dispense rice"
     });
   };
@@ -282,7 +281,7 @@ export function useDevice(deviceId: string | null) {
       "command/dispense": false,
       "command/add_water": false,
       "command/cancel": false,
-      "settings/cookDuration": durations.cookTime * 60, // convert minutes to seconds
+      "settings/cookDuration": durations.cookTime,
       "currentAction": "cook"
     });
   };
