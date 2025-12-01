@@ -2,40 +2,54 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Play, Square, CookingPot, Loader } from "lucide-react";
+import { Play, Square, CookingPot, Loader, Droplets, Wheat } from "lucide-react";
 import { type Status } from "@/hooks/use-device";
 
 type ActionButtonsProps = {
   status: Status;
-  onStart: () => void;
+  onAddWater: () => void;
+  onDispenseRice: () => void;
   onCook: () => void;
   onCancel: () => void;
   isRunning: boolean;
-  isStartCookDisabled: boolean;
+  isActionDisabled: boolean;
   isConnected: boolean;
 };
 
-export function ActionButtons({ status, onStart, onCook, onCancel, isRunning, isStartCookDisabled, isConnected }: ActionButtonsProps) {
+export function ActionButtons({ status, onAddWater, onDispenseRice, onCook, onCancel, isRunning, isActionDisabled, isConnected }: ActionButtonsProps) {
   const isSendingCommand = status === 'SENDING_COMMAND';
     
   return (
-    <div className="flex flex-col sm:flex-row gap-4 mt-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
       <Button
-        onClick={onStart}
-        disabled={isStartCookDisabled}
+        onClick={onAddWater}
+        disabled={isActionDisabled}
         size="lg"
         className="w-full text-lg font-bold tracking-wider"
       >
         {isSendingCommand ? (
             <Loader className="mr-2 h-5 w-5 animate-spin" />
         ) : (
-            <Play className="mr-2 h-5 w-5" />
+            <Droplets className="mr-2 h-5 w-5" />
         )}
-        Add Water & Dispense Rice
+        Add Water
+      </Button>
+      <Button
+        onClick={onDispenseRice}
+        disabled={isActionDisabled}
+        size="lg"
+        className="w-full text-lg font-bold tracking-wider"
+      >
+        {isSendingCommand ? (
+            <Loader className="mr-2 h-5 w-5 animate-spin" />
+        ) : (
+            <Wheat className="mr-2 h-5 w-5" />
+        )}
+        Dispense Rice
       </Button>
       <Button
         onClick={onCook}
-        disabled={isStartCookDisabled}
+        disabled={isActionDisabled}
         size="lg"
         className="w-full text-lg font-bold tracking-wider"
       >
@@ -46,7 +60,7 @@ export function ActionButtons({ status, onStart, onCook, onCancel, isRunning, is
         onClick={onCancel}
         disabled={!isRunning}
         size="lg"
-        className="w-full text-lg font-bold tracking-wider"
+        className="w-full text-lg font-bold tracking-wider col-span-1 sm:col-span-2 lg:col-span-3"
         variant="destructive"
       >
         <Square className="mr-2 h-5 w-5" />

@@ -24,7 +24,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const database = useDatabase();
   const auth = useAuth();
 
-  const { device, durations, loading, error, setDurations, startDevice, cookDevice, cancelDevice } = useDevice(deviceId);
+  const { device, durations, loading, error, setDurations, addWater, dispenseRice, cookDevice, cancelDevice } = useDevice(deviceId);
 
   const updateDeviceIdInUserProfile = (newDeviceId: string | null) => {
     const user = auth?.currentUser;
@@ -104,11 +104,12 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
             />
             <ActionButtons
               status={currentDevice.status as any}
-              onStart={startDevice}
+              onAddWater={addWater}
+              onDispenseRice={dispenseRice}
               onCook={cookDevice}
               onCancel={cancelDevice}
               isRunning={isRunning}
-              isStartCookDisabled={areActionButtonsDisabled}
+              isActionDisabled={areActionButtonsDisabled}
               isConnected={isConnected}
             />
         </div>

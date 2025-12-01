@@ -157,15 +157,15 @@ export function useDevice(deviceId: string | null) {
             
             stageTimeoutRef.current = setTimeout(() => {
                 const deviceRef = ref(database, `devices/${deviceId}`);
-                if (name === "DISPENSING") {
-                    update(deviceRef, {
-                        "command/dispense": false,
-                        currentAction: "add water",
-                        currentStage: { name: "WASHING", startTime: serverTimestamp(), duration: saneSettings.pumpTime }
-                    });
-                } else if (name === "WASHING") {
+                if (name === "WASHING") {
                     update(deviceRef, {
                         "command/add_water": false,
+                        currentAction: "idle",
+                        currentStage: null
+                    });
+                } else if (name === "DISPENSING") {
+                    update(deviceRef, {
+                        "command/dispense": false,
                         currentAction: "idle",
                         currentStage: null
                     });
@@ -240,10 +240,25 @@ export function useDevice(deviceId: string | null) {
     });
   };
 
-  const startDevice = () => {
+  const addWater = () => {
     sendCommandObject({
       "command/add_water": true,
+      "command/dispense": false,
+      "command/cook": false,
+      "command/cancel": false,
+      currentAction: "add water",
+      currentStage: {
+        name: "WASHING",
+        startTime: serverTimestamp(),
+        duration: durations.pumpTime
+      }
+    });
+  };
+
+  const dispenseRice = () => {
+    sendCommandObject({
       "command/dispense": true,
+      "command/add_water": false,
       "command/cook": false,
       "command/cancel": false,
       currentAction: "dispense rice",
@@ -297,7 +312,8 @@ export function useDevice(deviceId: string | null) {
     loading,
     error,
     setDurations: setDurationsCallback,
-    startDevice,
+    addWater,
+    dispenseRice,
     cookDevice,
     cancelDevice,
   };
