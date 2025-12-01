@@ -55,28 +55,33 @@ const defaultSettings: DeviceSettings = {
 export function useDevice(deviceId: string | null) {
   const database = useDatabase();
   const [device, setDevice] = useState<DeviceState | null>(null);
-  const [durations, setDurations] = useState<DeviceSettings>(defaultSettings);
+  const [durations, _setDurations] = useState<DeviceSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const stageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const durationsRef = useRef(durations);
 
-  const setDurationsCallback = useCallback((newSettings: Partial<DeviceSettings>) => {
+  const setDurations = useCallback((newSettings: Partial<DeviceSettings>) => {
+      const updatedSettings = { ...durationsRef.current, ...newSettings };
+      durationsRef.current = updatedSettings;
+      _setDurations(updatedSettings);
+
       if (!deviceId || !database) return;
+      
       const dbRef = ref(database, `devices/${deviceId}/settings`);
       
-      const currentSettings = { ...durations, ...newSettings};
-      setDurations(currentSettings);
+      const settingsToUpdate = {
+        dispenseDuration: updatedSettings.dispenseTime,
+        washDuration: updatedSettings.pumpTime,
+        cookDuration: updatedSettings.cookTime * 60,
+      };
 
-      update(dbRef, {
-        dispenseDuration: currentSettings.dispenseTime,
-        washDuration: currentSettings.pumpTime,
-        cookDuration: currentSettings.cookTime * 60,
-      }).catch((err) => {
+      update(dbRef, settingsToUpdate).catch((err) => {
         console.error("Failed to update settings in RTDB:", err);
         setError(err.message || "Failed to save settings.");
       });
-  }, [deviceId, database, durations]);
+  }, [deviceId, database]);
 
 
   useEffect(() => {
@@ -91,7 +96,8 @@ export function useDevice(deviceId: string | null) {
         lastUpdated: Date.now(),
         currentAction: null,
       });
-      setDurations(defaultSettings);
+      _setDurations(defaultSettings);
+      durationsRef.current = defaultSettings;
       setLoading(false);
       return;
     }
@@ -117,14 +123,15 @@ export function useDevice(deviceId: string | null) {
             cookTime: typeof data.settings?.cookDuration === 'number' ? Math.round(data.settings.cookDuration / 60) : defaultSettings.cookTime,
           };
           
-          setDurations(saneSettings);
+          _setDurations(saneSettings);
+          durationsRef.current = saneSettings;
 
           let newStatus: Status;
           const currentAction = data.currentAction ?? 'idle';
 
           switch (currentAction) {
             case 'idle':
-              newStatus = 'READY';
+              newStatus = data.command?.dispense || data.command?.add_water || data.command?.cook ? 'SENDING_COMMAND' : 'READY';
               break;
             case 'dispense rice':
               newStatus = 'DISPENSING';
@@ -150,7 +157,7 @@ export function useDevice(deviceId: string | null) {
           setDevice(newState);
 
           // Handle timed stages
-          if (newState.currentStage && newState.currentStage.startTime > 0) {
+          if (newState.currentStage && newState.currentStage.startTime > 0 && newState.currentStage.duration > 0) {
             const { name, startTime, duration } = newState.currentStage;
             const elapsedTime = (Date.now() - startTime) / 1000;
             const remainingTime = Math.max(0, duration - elapsedTime);
@@ -193,8 +200,10 @@ export function useDevice(deviceId: string | null) {
           };
           set(dbRef, defaultState)
             .then(() => {
-              setDevice({ ...defaultState, lastUpdated: Date.now(), status: "READY" } as DeviceState);
-              setDurations(defaultSettings);
+              const initialState = { ...defaultState, lastUpdated: Date.now(), status: "READY" } as DeviceState;
+              setDevice(initialState);
+              _setDurations(defaultSettings);
+              durationsRef.current = defaultSettings;
             })
             .catch((err) => {
                 console.error("Failed to create device state in RTDB:", err);
@@ -216,7 +225,8 @@ export function useDevice(deviceId: string | null) {
           status: "NOT_CONNECTED",
           lastUpdated: Date.now(),
         } as DeviceState);
-        setDurations(defaultSettings);
+        _setDurations(defaultSettings);
+        durationsRef.current = defaultSettings;
         setLoading(false);
       }
     );
@@ -250,7 +260,7 @@ export function useDevice(deviceId: string | null) {
       currentStage: {
         name: "WASHING",
         startTime: serverTimestamp(),
-        duration: durations.pumpTime
+        duration: durationsRef.current.pumpTime
       }
     });
   };
@@ -265,7 +275,7 @@ export function useDevice(deviceId: string | null) {
       currentStage: {
         name: "DISPENSING",
         startTime: serverTimestamp(),
-        duration: durations.dispenseTime
+        duration: durationsRef.current.dispenseTime
       }
     });
   };
@@ -280,7 +290,7 @@ export function useDevice(deviceId: string | null) {
       currentStage: {
         name: "COOKING",
         startTime: serverTimestamp(),
-        duration: durations.cookTime * 60
+        duration: durationsRef.current.cookTime * 60
       }
     });
   };
@@ -311,7 +321,7 @@ export function useDevice(deviceId: string | null) {
     durations,
     loading,
     error,
-    setDurations: setDurationsCallback,
+    setDurations,
     addWater,
     dispenseRice,
     cookDevice,
