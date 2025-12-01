@@ -10,8 +10,8 @@ import { Progress } from "@/components/ui/progress";
 const statusConfig = {
   READY: { text: "SYSTEM READY", icon: CheckCircle, color: "text-primary" },
   SENDING_COMMAND: { text: "SENDING...", icon: Hourglass, color: "text-accent-foreground" },
-  DISPENSING: { text: "Dispensing Rice & Adding Water", icon: Wheat, color: "text-accent-foreground" },
-  WASHING: { text: "Dispensing Rice & Adding Water", icon: Droplets, color: "text-accent-foreground" },
+  DISPENSING: { text: "Dispensing Rice", icon: Wheat, color: "text-accent-foreground" },
+  WASHING: { text: "Adding Water", icon: Droplets, color: "text-accent-foreground" },
   COOKING: { text: "COOKING", icon: Thermometer, color: "text-accent-foreground" },
   DONE: { text: "COOKING COMPLETE", icon: Utensils, color: "text-primary" },
   CANCELED: { text: "OPERATION CANCELED", icon: XCircle, color: "text-destructive" },
