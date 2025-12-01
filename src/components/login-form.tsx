@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogIn } from "lucide-react";
+import { LogIn, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,7 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const createUserProfile = async (user: User) => {
       if (!database || !user.email) return;
@@ -61,6 +62,8 @@ export function LoginForm() {
         return;
     }
 
+    setIsLoading(true);
+
     if (isSignUp) {
       if (password !== confirmPassword) {
         toast({
@@ -68,6 +71,7 @@ export function LoginForm() {
           title: "Passwords do not match",
           description: "Please make sure your passwords match.",
         });
+        setIsLoading(false);
         return;
       }
       try {
@@ -81,6 +85,8 @@ export function LoginForm() {
           title: "Uh oh! Something went wrong.",
           description: authError.message || "Could not create account.",
         });
+      } finally {
+        setIsLoading(false);
       }
     } else {
       try {
@@ -95,11 +101,14 @@ export function LoginForm() {
             ? "Invalid email or password. Please try again."
             : authError.message || "Could not log in.",
         });
+      } finally {
+        setIsLoading(false);
       }
     }
   };
 
   const toggleFormMode = () => {
+    if (isLoading) return;
     setIsSignUp(!isSignUp);
   };
 
@@ -113,6 +122,7 @@ export function LoginForm() {
             className="font-mono tracking-widest text-center"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            disabled={isLoading}
         />
       </div>
       <div className="space-y-2">
@@ -123,6 +133,7 @@ export function LoginForm() {
             className="font-mono tracking-widest text-center"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={isLoading}
         />
       </div>
       {isSignUp && (
@@ -134,19 +145,25 @@ export function LoginForm() {
               className="font-mono tracking-widest text-center"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={isLoading}
           />
         </div>
       )}
       <Button
         onClick={handleAuthAction}
         className="w-full font-bold tracking-wider text-lg"
+        disabled={isLoading}
       >
-        <LogIn className="mr-2 h-5 w-5" />
+        {isLoading ? (
+          <Loader className="mr-2 h-5 w-5 animate-spin" />
+        ) : (
+          <LogIn className="mr-2 h-5 w-5" />
+        )}
         {isSignUp ? "Create Account" : "Log in"}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         {isSignUp ? "Already have an account?" : "Don't have an account?"}
-        <Button variant="link" onClick={toggleFormMode} className="font-bold">
+        <Button variant="link" onClick={toggleFormMode} className="font-bold" disabled={isLoading}>
           {isSignUp ? "Log in" : "Create one"}
         </Button>
       </p>
