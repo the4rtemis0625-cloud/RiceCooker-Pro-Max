@@ -55,12 +55,11 @@ const defaultSettings: DeviceSettings = {
 export function useDevice(deviceId: string | null) {
   const database = useDatabase();
   const [device, setDevice] = useState<DeviceState | null>(null);
-  const [uiStatus, setUiStatus] = useState<Status | null>(null);
   const [durations, setDurations] = useState<DeviceSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const commandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const stageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const setDurationsCallback = useCallback((newSettings: Partial<DeviceSettings>) => {
       if (!deviceId || !database) return;
@@ -104,13 +103,13 @@ export function useDevice(deviceId: string | null) {
     const listener = onValue(
       dbRef,
       (snapshot) => {
-        if (commandTimeoutRef.current) {
-          clearTimeout(commandTimeoutRef.current);
-          commandTimeoutRef.current = null;
+        if (stageTimeoutRef.current) {
+          clearTimeout(stageTimeoutRef.current);
+          stageTimeoutRef.current = null;
         }
 
         if (snapshot.exists()) {
-          const data = snapshot.val() as Partial<DeviceState & { settings: { dispenseDuration: number; washDuration: number; cookDuration: number } }>;
+          const data = snapshot.val() as DeviceState & { settings: { dispenseDuration: number; washDuration: number; cookDuration: number } };
           
           const saneSettings: DeviceSettings = {
             pumpTime: typeof data.settings?.washDuration === 'number' ? data.settings.washDuration : defaultSettings.pumpTime,
@@ -147,7 +146,39 @@ export function useDevice(deviceId: string | null) {
               break;
           }
           
-          setDevice({ ...data, status: newStatus, currentAction } as DeviceState);
+          const newState = { ...data, status: newStatus, currentAction } as DeviceState;
+          setDevice(newState);
+
+          // Handle timed stages
+          if (newState.currentStage && newState.currentStage.startTime > 0) {
+            const { name, startTime, duration } = newState.currentStage;
+            const elapsedTime = (Date.now() - startTime) / 1000;
+            const remainingTime = Math.max(0, duration - elapsedTime);
+            
+            stageTimeoutRef.current = setTimeout(() => {
+                const deviceRef = ref(database, `devices/${deviceId}`);
+                if (name === "DISPENSING") {
+                    update(deviceRef, {
+                        "command/dispense": false,
+                        currentAction: "add water",
+                        currentStage: { name: "WASHING", startTime: serverTimestamp(), duration: saneSettings.pumpTime }
+                    });
+                } else if (name === "WASHING") {
+                    update(deviceRef, {
+                        "command/add_water": false,
+                        currentAction: "idle",
+                        currentStage: null
+                    });
+                } else if (name === "COOKING") {
+                    update(deviceRef, {
+                        "command/cook": false,
+                        currentAction: "done",
+                        currentStage: null
+                    });
+                }
+            }, remainingTime * 1000);
+          }
+
 
         } else {
           const defaultState = {
@@ -192,8 +223,8 @@ export function useDevice(deviceId: string | null) {
 
     return () => {
       off(dbRef, "value", listener);
-      if(commandTimeoutRef.current) {
-        clearTimeout(commandTimeoutRef.current);
+      if(stageTimeoutRef.current) {
+        clearTimeout(stageTimeoutRef.current);
       }
     };
   }, [deviceId, database]);
@@ -210,19 +241,17 @@ export function useDevice(deviceId: string | null) {
   };
 
   const startDevice = () => {
-    setUiStatus('DISPENSING');
-    setTimeout(() => {
-        setUiStatus(null);
-    }, 7000);
-
     sendCommandObject({
       "command/add_water": true,
       "command/dispense": true,
       "command/cook": false,
       "command/cancel": false,
-      "settings/dispenseDuration": durations.dispenseTime,
-      "settings/washDuration": durations.pumpTime,
-      "currentAction": "dispense rice"
+      currentAction: "dispense rice",
+      currentStage: {
+        name: "DISPENSING",
+        startTime: serverTimestamp(),
+        duration: durations.dispenseTime
+      }
     });
   };
 
@@ -232,8 +261,12 @@ export function useDevice(deviceId: string | null) {
       "command/dispense": false,
       "command/add_water": false,
       "command/cancel": false,
-      "settings/cookDuration": durations.cookTime * 60,
-      "currentAction": "cook"
+      currentAction: "cook",
+      currentStage: {
+        name: "COOKING",
+        startTime: serverTimestamp(),
+        duration: durations.cookTime * 60
+      }
     });
   };
 
@@ -252,14 +285,14 @@ export function useDevice(deviceId: string | null) {
         "command/cook": false,
         "command/add_water": false,
         queue: [],
-        "currentAction": "canceled"
+        currentAction: "canceled",
+        currentStage: null
       });
     }
   };
 
   return {
     device,
-    uiStatus,
     durations,
     loading,
     error,
