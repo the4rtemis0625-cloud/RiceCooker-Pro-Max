@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ActionButtons } from "./rice-cooker/action-buttons";
 import { SettingsPanel } from "./rice-cooker/settings-panel";
 import { StatusDisplay } from "./rice-cooker/status-display";
@@ -25,6 +25,16 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const auth = useAuth();
 
   const { device, durations, loading, error, setDurations, addWater, dispenseRice, cookDevice, cancelDevice } = useDevice(deviceId);
+  
+  useEffect(() => {
+    // Sync the local storage deviceId with the one from the user's profile
+    if (initialDeviceId !== deviceId) {
+        setDeviceId(initialDeviceId);
+    }
+    // We only want to run this when the initialDeviceId from props changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDeviceId]);
+
 
   const updateDeviceIdInUserProfile = (newDeviceId: string | null) => {
     const user = auth?.currentUser;

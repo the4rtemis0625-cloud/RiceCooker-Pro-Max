@@ -9,7 +9,6 @@ import { ref, get } from "firebase/database";
 import { ControlPanel } from "@/components/control-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { useLocalStorage } from "@/hooks/use-local-storage";
 
 interface UserProfile {
     deviceId: string | null;
