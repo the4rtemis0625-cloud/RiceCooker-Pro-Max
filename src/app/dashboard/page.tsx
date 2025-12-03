@@ -67,8 +67,8 @@ export default function DashboardPage() {
 
   if (loading || !authChecked) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 space-y-4">
-        <div className="w-full max-w-2xl space-y-8">
+      <div className="flex min-h-screen flex-col items-center p-4 sm:p-6 md:p-8">
+        <div className="w-full max-w-4xl space-y-8">
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-12 w-full" />
@@ -79,11 +79,13 @@ export default function DashboardPage() {
   
   if(user) {
     return (
-        <main className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 space-y-4">
+        <main className="flex min-h-screen flex-col items-center p-4 sm:p-6 md:p-8">
             <div className="absolute top-4 right-4">
               <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
             </div>
-            <ControlPanel initialDeviceId={initialDeviceId} />
+            <div className="w-full max-w-5xl">
+                <ControlPanel initialDeviceId={initialDeviceId} />
+            </div>
         </main>
     );
   }

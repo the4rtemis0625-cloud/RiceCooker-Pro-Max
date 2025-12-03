@@ -81,7 +81,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
 
   if (loading && deviceId) {
     return (
-        <div className="w-full max-w-2xl space-y-8">
+        <div className="w-full space-y-8">
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-48 w-full" />
             <Skeleton className="h-64 w-full" />
@@ -91,7 +91,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   }
 
   return (
-    <div className="w-full max-w-2xl space-y-8">
+    <div className="w-full space-y-8">
         <DeviceConnection
             deviceId={deviceId}
             onSave={handleSaveDeviceId}
@@ -103,22 +103,26 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
             deviceId={deviceId ?? ""}
         />
 
-        <div className={cn(!isConnected && "opacity-50 pointer-events-none")}>
-            <SettingsPanel
-              durations={durations}
-              setDurations={setDurations}
-              isDisabled={isRunning || !isConnected}
-            />
-            <ActionButtons
-              status={currentDevice.status as any}
-              onAddWater={addWater}
-              onDispenseRice={dispenseRice}
-              onCook={cookDevice}
-              onCancel={cancelDevice}
-              isRunning={isRunning}
-              isActionDisabled={areActionButtonsDisabled}
-              isConnected={isConnected}
-            />
+        <div className={cn("grid grid-cols-1 md:grid-cols-2 md:gap-8", !isConnected && "opacity-50 pointer-events-none")}>
+            <div className="space-y-8">
+                <SettingsPanel
+                  durations={durations}
+                  setDurations={setDurations}
+                  isDisabled={isRunning || !isConnected}
+                />
+            </div>
+            <div className="mt-8 md:mt-0">
+                <ActionButtons
+                  status={currentDevice.status as any}
+                  onAddWater={addWater}
+                  onDispenseRice={dispenseRice}
+                  onCook={cookDevice}
+                  onCancel={cancelDevice}
+                  isRunning={isRunning}
+                  isActionDisabled={areActionButtonsDisabled}
+                  isConnected={isConnected}
+                />
+            </div>
         </div>
     </div>
   );
