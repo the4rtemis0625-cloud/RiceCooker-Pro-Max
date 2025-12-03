@@ -80,10 +80,11 @@ export default function DashboardPage() {
   if(user) {
     return (
         <main className="flex min-h-screen flex-col items-center p-4 sm:p-6 md:p-8">
-            <div className="absolute top-4 right-4">
-              <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
-            </div>
             <div className="w-full max-w-5xl">
+                <header className="flex justify-between items-center mb-8">
+                    <h1 className="text-2xl font-bold text-primary">RiceCooker Pro Max</h1>
+                    <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
+                </header>
                 <ControlPanel initialDeviceId={initialDeviceId} />
             </div>
         </main>
