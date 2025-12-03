@@ -21,38 +21,43 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [initialDeviceId, setInitialDeviceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    if (!auth) {
-        return;
-    }
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        setUser(user);
-        
-        if (database) {
-          const userRef = ref(database, `users/${user.uid}`);
-          const userSnap = await get(userRef);
+    if (!auth) return;
 
-          if (userSnap.exists()) {
-              const userProfile = userSnap.val() as UserProfile;
-              setInitialDeviceId(userProfile.deviceId);
-          } else {
-              console.log("No user profile found!");
-              setInitialDeviceId(null);
-          }
-        }
-
-      } else {
-        setUser(null);
-        setInitialDeviceId(null);
-        router.push("/login");
-      }
-      setLoading(false);
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+      setAuthChecked(true);
     });
 
     return () => unsubscribe();
-  }, [auth, database, router]);
+  }, [auth]);
+
+  useEffect(() => {
+    if (!authChecked) return;
+
+    if (user && database) {
+      const userRef = ref(database, `users/${user.uid}`);
+      get(userRef).then((userSnap) => {
+        if (userSnap.exists()) {
+          const userProfile = userSnap.val() as UserProfile;
+          setInitialDeviceId(userProfile.deviceId);
+        } else {
+          console.log("No user profile found!");
+          setInitialDeviceId(null);
+        }
+        setLoading(false);
+      }).catch(err => {
+        console.error("Error fetching user profile:", err);
+        setInitialDeviceId(null);
+        setLoading(false);
+      });
+    } else if (!user) {
+      router.push("/login");
+    }
+  }, [authChecked, user, database, router]);
+
 
   const handleSignOut = () => {
     auth?.signOut().then(() => {
@@ -60,7 +65,7 @@ export default function DashboardPage() {
     });
   }
 
-  if (loading) {
+  if (loading || !authChecked) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 space-y-4">
         <div className="w-full max-w-2xl space-y-8">

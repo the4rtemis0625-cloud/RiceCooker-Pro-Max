@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -88,10 +89,15 @@ export default {
             height: '0',
           },
         },
+        'fall': {
+            '0%': { transform: 'translateY(-100%)', opacity: '1' },
+            '100%': { transform: 'translateY(100vh)', opacity: '0' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'fall': 'fall 5s linear infinite',
       },
     },
   },

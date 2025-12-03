@@ -12,14 +12,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useDatabase } from "@/firebase";
 import { ref, update } from "firebase/database";
-import { useLocalStorage } from "@/hooks/use-local-storage";
 
 interface ControlPanelProps {
     initialDeviceId: string | null;
 }
 
 export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
-  const [deviceId, setDeviceId] = useLocalStorage<string | null>('ricecooker-deviceId', initialDeviceId);
+  const [deviceId, setDeviceId] = useState<string | null>(initialDeviceId);
   const { toast } = useToast();
   const database = useDatabase();
   const auth = useAuth();
@@ -27,13 +26,11 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const { device, durations, loading, error, setDurations, addWater, dispenseRice, cookDevice, cancelDevice } = useDevice(deviceId);
   
   useEffect(() => {
-    // Sync the local storage deviceId with the one from the user's profile
+    // Sync the local state with the one from the user's profile prop
     if (initialDeviceId !== deviceId) {
         setDeviceId(initialDeviceId);
     }
-    // We only want to run this when the initialDeviceId from props changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialDeviceId]);
+  }, [initialDeviceId, deviceId]);
 
 
   const updateDeviceIdInUserProfile = (newDeviceId: string | null) => {
