@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Wheat, Droplets, CookingPot, PlusCircle } from "lucide-react";
+import { Wheat, Droplets, CookingPot, PlusCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,17 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { DeviceSettings } from "@/hooks/use-device";
 
@@ -94,6 +105,21 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
     setNewPresetName("");
     setIsDialogOpen(false);
   };
+  
+  const handleDeleteCustomPreset = (presetNameToDelete: string) => {
+    const updatedPresets = customPresets.filter(
+      (p) => p.name !== presetNameToDelete
+    );
+    setCustomPresets(updatedPresets);
+    try {
+      localStorage.setItem(
+        "ricecooker-custom-presets",
+        JSON.stringify(updatedPresets)
+      );
+    } catch (error) {
+      console.error("Could not update custom presets in localStorage", error);
+    }
+  };
 
 
   return (
@@ -110,11 +136,46 @@ export function SettingsPanel({ durations, setDurations, isDisabled }: SettingsP
             <Button variant="outline" size="sm" onClick={() => handlePreset('small')} disabled={isDisabled}>1 Person</Button>
             <Button variant="outline" size="sm" onClick={() => handlePreset('medium')} disabled={isDisabled}>2 People</Button>
             <Button variant="outline" size="sm" onClick={() => handlePreset('large')} disabled={isDisabled}>4 People</Button>
+            
             {customPresets.map((preset) => (
-              <Button key={preset.name} variant="outline" size="sm" onClick={() => handleCustomPreset(preset)} disabled={isDisabled}>
-                {preset.name}
-              </Button>
+              <div key={preset.name} className="relative group">
+                <Button variant="outline" size="sm" onClick={() => handleCustomPreset(preset)} disabled={isDisabled} className="pr-4">
+                  {preset.name}
+                </Button>
+                {!isDisabled && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label={`Remove ${preset.name} preset`}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete the preset "{preset.name}". This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteCustomPreset(preset.name)}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                )}
+              </div>
             ))}
+            
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" disabled={isDisabled} className="flex items-center gap-1 text-muted-foreground">
