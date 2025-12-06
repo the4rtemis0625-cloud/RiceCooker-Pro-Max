@@ -1,49 +1,42 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 
 interface DeviceFormProps {
-  currentDeviceId?: string;
   onSubmit: (deviceId: string) => Promise<void>;
 }
 
-export function DeviceForm({ currentDeviceId, onSubmit }: DeviceFormProps) {
-  const [deviceId, setDeviceId] = useState(currentDeviceId || "");
+export function DeviceForm({ onSubmit }: DeviceFormProps) {
+  const [deviceId, setDeviceId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    setDeviceId(currentDeviceId || "");
-  }, [currentDeviceId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!deviceId.trim() || deviceId.trim() === currentDeviceId) return;
+    if (!deviceId.trim()) return;
 
     setIsSubmitting(true);
     await onSubmit(deviceId.trim());
     setIsSubmitting(false);
+    setDeviceId(""); // Clear input after submission
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{currentDeviceId ? "Update Device Registration" : "Register a New Device"}</CardTitle>
+        <CardTitle>Register a New Device</CardTitle>
         <CardDescription>
-          {currentDeviceId 
-            ? "Enter a new Device ID to link to your account."
-            : "Enter the Device ID to link a new device to your account."
-          }
+          Enter the Device ID found on your RiceCooker to link it to your account.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+        <form onSubmit={handleSubmit} className="flex items-end gap-4">
+          <div className="flex-grow space-y-2">
             <Label htmlFor="device-id">Device ID</Label>
             <Input
               id="device-id"
@@ -51,11 +44,12 @@ export function DeviceForm({ currentDeviceId, onSubmit }: DeviceFormProps) {
               value={deviceId}
               onChange={(e) => setDeviceId(e.target.value)}
               className="font-mono"
+              disabled={isSubmitting}
             />
           </div>
-          <Button type="submit" disabled={isSubmitting || !deviceId.trim() || deviceId.trim() === currentDeviceId}>
-            <Save className="mr-2 h-4 w-4" />
-            {isSubmitting ? "Saving..." : "Save Changes"}
+          <Button type="submit" disabled={isSubmitting || !deviceId.trim()}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            {isSubmitting ? "Adding..." : "Add Device"}
           </Button>
         </form>
       </CardContent>

@@ -102,9 +102,10 @@
                 "format": "email",
                 "description": "The user's email address."
             },
-            "deviceId": {
-                "type": "string",
-                "description": "The ID of the rice cooker device associated with this user."
+            "deviceIds": {
+                "type": "object",
+                "description": "A collection of device IDs registered to this user.",
+                "additionalProperties": { "type": "boolean" }
             },
             "createdAt": {
                 "type": "object",

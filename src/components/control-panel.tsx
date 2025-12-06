@@ -11,12 +11,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
 interface ControlPanelProps {
-    initialDeviceId: string | null;
+    activeDeviceId: string | null;
 }
 
-export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
+export function ControlPanel({ activeDeviceId }: ControlPanelProps) {
   const { toast } = useToast();
-  const { device, durations, loading, error, setDurations, addWater, dispenseRice, cookDevice, cancelDevice } = useDevice(initialDeviceId);
+  const { device, durations, loading, error, setDurations, addWater, dispenseRice, cookDevice, cancelDevice } = useDevice(activeDeviceId);
   
   useEffect(() => {
     if (error) {
@@ -34,7 +34,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   
   const areActionButtonsDisabled = !isConnected || isRunning || currentDevice.status === 'SENDING_COMMAND';
 
-  if (loading && initialDeviceId) {
+  if (loading && activeDeviceId) {
     return (
         <div className="w-full space-y-8">
             <Skeleton className="h-32 w-full" />
@@ -49,7 +49,7 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
     <div className="w-full space-y-8">
         <StatusDisplay
             status={currentDevice.status as any}
-            deviceId={initialDeviceId ?? ""}
+            deviceId={activeDeviceId ?? ""}
         />
 
         <div className={cn("grid grid-cols-1 md:grid-cols-2 md:gap-8", !isConnected && "opacity-50 pointer-events-none")}>

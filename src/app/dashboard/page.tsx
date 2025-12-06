@@ -5,14 +5,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useDatabase } from "@/firebase";
 import { User } from "firebase/auth";
-import { ref, get } from "firebase/database";
+import { ref, onValue } from "firebase/database";
 import { ControlPanel } from "@/components/control-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface UserProfile {
-    deviceId: string | null;
+    deviceIds: Record<string, boolean> | null;
 }
 
 export default function DashboardPage() {
@@ -21,12 +23,12 @@ export default function DashboardPage() {
   const auth = useAuth();
   const database = useDatabase();
   const [user, setUser] = useState<User | null>(null);
-  const [initialDeviceId, setInitialDeviceId] = useState<string | null>(null);
+  const [deviceIds, setDeviceIds] = useState<string[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    // This ensures the component only renders its full content on the client side.
     setIsClient(true);
   }, []);
 
@@ -34,36 +36,50 @@ export default function DashboardPage() {
     if (!isClient || !auth) return;
 
     const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
+      if (!user) {
+        router.push("/login");
+      } else {
+        setUser(user);
+      }
       setAuthChecked(true);
     });
 
     return () => unsubscribe();
-  }, [isClient, auth]);
+  }, [isClient, auth, router]);
 
   useEffect(() => {
-    if (!isClient || !authChecked) return;
+    if (!isClient || !authChecked || !user || !database) return;
 
-    if (user && database) {
-      const userRef = ref(database, `users/${user.uid}`);
-      get(userRef).then((userSnap) => {
-        if (userSnap.exists()) {
-          const userProfile = userSnap.val() as UserProfile;
-          setInitialDeviceId(userProfile.deviceId);
+    setLoading(true);
+    const userRef = ref(database, `users/${user.uid}`);
+    const unsubscribeProfile = onValue(userRef, (userSnap) => {
+      if (userSnap.exists()) {
+        const userProfile = userSnap.val() as UserProfile;
+        const fetchedDeviceIds = userProfile.deviceIds ? Object.keys(userProfile.deviceIds) : [];
+        setDeviceIds(fetchedDeviceIds);
+
+        if (fetchedDeviceIds.length > 0) {
+          if (!selectedDeviceId || !fetchedDeviceIds.includes(selectedDeviceId)) {
+            setSelectedDeviceId(fetchedDeviceIds[0]);
+          }
         } else {
-          console.log("No user profile found!");
-          setInitialDeviceId(null);
+          setSelectedDeviceId(null);
         }
-        setLoading(false);
-      }).catch(err => {
-        console.error("Error fetching user profile:", err);
-        setInitialDeviceId(null);
-        setLoading(false);
-      });
-    } else if (!user) {
-      router.push("/login");
-    }
-  }, [isClient, authChecked, user, database, router]);
+      } else {
+        console.log("No user profile found!");
+        setDeviceIds([]);
+        setSelectedDeviceId(null);
+      }
+      setLoading(false);
+    }, (err) => {
+      console.error("Error fetching user profile:", err);
+      setDeviceIds([]);
+      setSelectedDeviceId(null);
+      setLoading(false);
+    });
+
+    return () => unsubscribeProfile();
+  }, [isClient, authChecked, user, database, selectedDeviceId]);
 
   const handleSignOut = () => {
     auth?.signOut().then(() => {
@@ -76,9 +92,10 @@ export default function DashboardPage() {
       <div className="flex min-h-screen flex-col items-center p-4 sm:p-6 md:p-8">
         <div className="w-full max-w-5xl space-y-8">
             <header className="flex justify-between items-center mb-8">
-                <h1 className="text-2xl font-bold text-primary">RiceCooker Pro Max</h1>
+                <h1 className="text-2xl font-bold text-primary">RiceCooker Pro-Max</h1>
                 <Skeleton className="h-10 w-24" />
             </header>
+            <Skeleton className="h-24 w-full" />
             <Skeleton className="h-48 w-full" />
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-64 w-full" />
@@ -90,7 +107,7 @@ export default function DashboardPage() {
   if (user) {
     return (
         <main className="flex min-h-screen flex-col items-center p-4 sm:p-6 md:p-8">
-            <div className="w-full max-w-5xl">
+            <div className="w-full max-w-5xl space-y-8">
                 <header className="flex justify-between items-center mb-8">
                     <h1 className="text-2xl font-bold text-primary">RiceCooker Pro-Max</h1>
                     <div className="flex items-center gap-4">
@@ -100,12 +117,49 @@ export default function DashboardPage() {
                         <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
                     </div>
                 </header>
-                <ControlPanel initialDeviceId={initialDeviceId} />
+
+                {deviceIds.length > 1 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Select Device</CardTitle>
+                      <CardDescription>Choose which RiceCooker to control.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Select value={selectedDeviceId || ''} onValueChange={setSelectedDeviceId}>
+                        <SelectTrigger className="w-full md:w-1/2">
+                          <SelectValue placeholder="Select a device" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {deviceIds.map(id => (
+                            <SelectItem key={id} value={id}>{id}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {deviceIds.length > 0 ? (
+                  <ControlPanel activeDeviceId={selectedDeviceId} />
+                ) : (
+                  <Card className="text-center py-12">
+                      <CardHeader>
+                          <CardTitle>No Devices Registered</CardTitle>
+                          <CardDescription className="mt-2">
+                              You don't have any devices linked to your account yet.
+                          </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                          <Button asChild>
+                              <Link href="/management">Register a Device</Link>
+                          </Button>
+                      </CardContent>
+                  </Card>
+                )}
             </div>
         </main>
     );
   }
 
-  // If auth has been checked and there's no user, we redirect, but return null in the meantime.
   return null;
 }

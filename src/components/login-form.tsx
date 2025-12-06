@@ -36,7 +36,7 @@ export function LoginForm() {
       const userProfileData = {
           email: user.email,
           createdAt: serverTimestamp(),
-          deviceId: null, 
+          deviceIds: null, 
       };
 
       try {

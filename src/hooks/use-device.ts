@@ -52,7 +52,7 @@ const defaultSettings: DeviceSettings = {
   cookTime: 30,
 };
 
-export function useDevice(deviceId: string | null) {
+export function useDevice(activeDeviceId: string | null) {
   const database = useDatabase();
   const [device, setDevice] = useState<DeviceState | null>(null);
   const [durations, _setDurations] = useState<DeviceSettings>(defaultSettings);
@@ -67,9 +67,9 @@ export function useDevice(deviceId: string | null) {
       durationsRef.current = updatedSettings;
       _setDurations(updatedSettings);
 
-      if (!deviceId || !database) return;
+      if (!activeDeviceId || !database) return;
       
-      const dbRef = ref(database, `devices/${deviceId}/settings`);
+      const dbRef = ref(database, `devices/${activeDeviceId}/settings`);
       
       const settingsToUpdate = {
         dispenseDuration: updatedSettings.dispenseTime,
@@ -81,7 +81,7 @@ export function useDevice(deviceId: string | null) {
         console.error("Failed to update settings in RTDB:", err);
         setError(err.message || "Failed to save settings.");
       });
-  }, [deviceId, database]);
+  }, [activeDeviceId, database]);
 
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export function useDevice(deviceId: string | null) {
       return;
     }
 
-    if (!deviceId) {
+    if (!activeDeviceId) {
       setDevice({
         status: "NOT_CONNECTED",
         lastUpdated: Date.now(),
@@ -104,7 +104,7 @@ export function useDevice(deviceId: string | null) {
 
     setLoading(true);
     setError(null);
-    const dbRef = ref(database, `devices/${deviceId}`);
+    const dbRef = ref(database, `devices/${activeDeviceId}`);
 
     const listener = onValue(
       dbRef,
@@ -163,7 +163,7 @@ export function useDevice(deviceId: string | null) {
             const remainingTime = Math.max(0, duration - elapsedTime);
             
             stageTimeoutRef.current = setTimeout(() => {
-                const deviceRef = ref(database, `devices/${deviceId}`);
+                const deviceRef = ref(database, `devices/${activeDeviceId}`);
                 if (name === "WASHING") {
                     update(deviceRef, {
                         "command/add_water": false,
@@ -237,13 +237,13 @@ export function useDevice(deviceId: string | null) {
         clearTimeout(stageTimeoutRef.current);
       }
     };
-  }, [deviceId, database]);
+  }, [activeDeviceId, database]);
   
 
   const sendCommandObject = (commandData: object) => {
-    if (!deviceId || !database) return;
+    if (!activeDeviceId || !database) return;
     
-    const deviceRef = ref(database, `devices/${deviceId}`);
+    const deviceRef = ref(database, `devices/${activeDeviceId}`);
     update(deviceRef, commandData).catch((err) => {
       console.error("Failed to send command:", err);
       setError(err.message || "Failed to send command to device.");
@@ -296,14 +296,14 @@ export function useDevice(deviceId: string | null) {
   };
 
   const cancelDevice = () => {
-    if (!deviceId || !database) return;
+    if (!activeDeviceId || !database) return;
     const currentAction = device?.currentAction;
     if (
       currentAction === "dispense rice" ||
       currentAction === "add water" ||
       currentAction === "cook"
     ) {
-      const deviceRef = ref(database, `devices/${deviceId}`);
+      const deviceRef = ref(database, `devices/${activeDeviceId}`);
       update(deviceRef, {
         "command/cancel": true,
         "command/dispense": false,
