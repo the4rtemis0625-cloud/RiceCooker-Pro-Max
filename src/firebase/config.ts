@@ -4,14 +4,14 @@ import type { FirebaseOptions } from 'firebase/app';
 /**
  * The Firebase project's configuration object.
  *
- * This object is used to initialize the Firebase app. It is pulled from the
- * Firebase CLI when the project is initialized.
+ * This object is used to initialize the Firebase app. It is pulled from 
+ * environment variables, which are loaded from your .env.local file.
  */
 export const firebaseConfig: FirebaseOptions = {
-  apiKey: "AIzaSyCN6TywBh86nQ_OtNf3mZtAyFoLHX0Vvjg",
-  authDomain: "locate-ai-a5391.firebaseapp.com",
-  projectId: "locate-ai-a5391",
-  storageBucket: "locate-ai-a5391.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
