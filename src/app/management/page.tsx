@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth, useDatabase } from "@/firebase";
-import { ref, onValue, get, child } from "firebase/database";
+import { ref, onValue, get } from "firebase/database";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
 import { DeviceState, Status } from "@/hooks/use-device";
+import { User } from "firebase/auth";
 
 interface DeviceWithId extends DeviceState {
   id: string;
@@ -36,12 +37,15 @@ export default function ManagementPage() {
   const database = useDatabase();
   const [devices, setDevices] = useState<DeviceWithId[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth?.onAuthStateChanged(user => {
       if (!user) {
         router.push('/login');
+      } else {
+        setUser(user);
       }
       setAuthChecked(true);
     });
@@ -49,64 +53,71 @@ export default function ManagementPage() {
   }, [auth, router]);
 
   useEffect(() => {
-    if (!authChecked || !database) return;
+    if (!authChecked || !database || !user) {
+      setLoading(false);
+      return;
+    };
 
-    const devicesRef = ref(database, 'devices');
-    const unsubscribe = onValue(devicesRef, async (snapshot) => {
-      if (snapshot.exists()) {
-        const devicesData = snapshot.val();
-        const deviceList: Promise<DeviceWithId>[] = Object.keys(devicesData).map(async (deviceId) => {
-          const device: any = devicesData[deviceId];
+    setLoading(true);
+    
+    // 1. Get the current user's profile to find their deviceID
+    const userProfileRef = ref(database, `users/${user.uid}`);
+    get(userProfileRef).then(userSnap => {
+        if (!userSnap.exists() || !userSnap.val().deviceId) {
+            setDevices([]);
+            setLoading(false);
+            return;
+        }
+        
+        const deviceId = userSnap.val().deviceId;
+        const deviceRef = ref(database, `devices/${deviceId}`);
 
-          // Determine status from currentAction
-          let status: Status = "READY";
-          switch (device.currentAction) {
-            case 'idle': status = 'READY'; break;
-            case 'dispense rice': status = 'DISPENSING'; break;
-            case 'add water': status = 'WASHING'; break;
-            case 'cook': status = 'COOKING'; break;
-            case 'done': status = 'DONE'; break;
-            case 'canceled': status = 'CANCELED'; break;
-            default: status = 'READY';
-          }
-          if (device.command?.dispense || device.command?.add_water || device.command?.cook) {
-             status = 'SENDING_COMMAND';
-          }
+        // 2. Listen for real-time updates on that specific device
+        const unsubscribeDevice = onValue(deviceRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const deviceData = snapshot.val();
 
-          // Find user associated with this device
-          const usersRef = ref(database, 'users');
-          const usersSnap = await get(usersRef);
-          let userEmail = "N/A";
-          if (usersSnap.exists()) {
-              const usersData = usersSnap.val();
-              for (const uid in usersData) {
-                  if (usersData[uid].deviceId === deviceId) {
-                      userEmail = usersData[uid].email;
-                      break;
-                  }
-              }
-          }
-          
-          return {
-            ...device,
-            id: deviceId,
-            status,
-            userEmail,
-          };
+                let status: Status = "READY";
+                switch (deviceData.currentAction) {
+                    case 'idle': status = 'READY'; break;
+                    case 'dispense rice': status = 'DISPENSING'; break;
+                    case 'add water': status = 'WASHING'; break;
+                    case 'cook': status = 'COOKING'; break;
+                    case 'done': status = 'DONE'; break;
+                    case 'canceled': status = 'CANCELED'; break;
+                    default: status = 'READY';
+                }
+                if (deviceData.command?.dispense || deviceData.command?.add_water || deviceData.command?.cook) {
+                    status = 'SENDING_COMMAND';
+                }
+
+                const deviceWithId: DeviceWithId = {
+                    ...deviceData,
+                    id: deviceId,
+                    status,
+                    userEmail: user.email || "N/A",
+                };
+                setDevices([deviceWithId]); // Set state with an array containing the single device
+            } else {
+                setDevices([]);
+            }
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching device:", error);
+            setDevices([]);
+            setLoading(false);
         });
-        const resolvedDevices = await Promise.all(deviceList);
-        setDevices(resolvedDevices);
-      } else {
+
+        // Return a cleanup function for the device listener
+        return () => unsubscribeDevice();
+    }).catch(error => {
+        console.error("Error fetching user profile:", error);
         setDevices([]);
-      }
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching devices:", error);
-      setLoading(false);
+        setLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [authChecked, database]);
+  }, [authChecked, database, user]);
+
 
   if (loading || !authChecked) {
     return (
@@ -127,13 +138,13 @@ export default function ManagementPage() {
                 <Link href="/dashboard"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard</Link>
             </Button>
             <h1 className="text-3xl font-bold text-primary">Device Management</h1>
-            <p className="text-muted-foreground">An overview of all registered devices in the system.</p>
+            <p className="text-muted-foreground">An overview of your registered device.</p>
         </div>
         
         <Card>
           <CardHeader>
-            <CardTitle>Registered Devices</CardTitle>
-            <CardDescription>A real-time list of all connected rice cookers.</CardDescription>
+            <CardTitle>Your Registered Device</CardTitle>
+            <CardDescription>A real-time view of your connected rice cooker.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -164,7 +175,7 @@ export default function ManagementPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground">
-                      No devices found.
+                      No device is registered to this account.
                     </TableCell>
                   </TableRow>
                 )}
