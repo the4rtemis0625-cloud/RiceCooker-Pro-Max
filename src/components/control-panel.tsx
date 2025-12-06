@@ -11,7 +11,7 @@ import { type DeviceState, type DeviceSettings, useDevice } from "@/hooks/use-de
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useDatabase } from "@/firebase";
-import { ref, update } from "firebase/database";
+import { ref, update, get, query, orderByChild, equalTo } from "firebase/database";
 
 interface ControlPanelProps {
     initialDeviceId: string | null;
@@ -26,7 +26,6 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
   const { device, durations, loading, error, setDurations, addWater, dispenseRice, cookDevice, cancelDevice } = useDevice(deviceId);
   
   useEffect(() => {
-    // Sync the local state with the one from the user's profile prop
     if (initialDeviceId !== deviceId) {
         setDeviceId(initialDeviceId);
     }
@@ -41,6 +40,17 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
     update(userRef, { deviceId: newDeviceId })
         .then(() => {
             setDeviceId(newDeviceId);
+             if (newDeviceId) {
+                toast({
+                    title: "Device Connected",
+                    description: `Successfully connected to device ID: ${newDeviceId}`,
+                });
+            } else {
+                 toast({
+                    title: "Device Disconnected",
+                    description: "You have disconnected from the device.",
+                });
+            }
         })
         .catch((err) => {
             console.error("Error updating device ID:", err);
@@ -52,8 +62,37 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
         });
   };
 
-  const handleSaveDeviceId = (newDeviceId: string) => {
-    updateDeviceIdInUserProfile(newDeviceId);
+  const handleSaveDeviceId = async (newDeviceId: string) => {
+    if (!database || !auth?.currentUser) return;
+
+    const usersRef = ref(database, 'users');
+    const deviceIdQuery = query(usersRef, orderByChild('deviceId'), equalTo(newDeviceId));
+    
+    try {
+        const snapshot = await get(deviceIdQuery);
+        if (snapshot.exists()) {
+            const usersWithDevice = snapshot.val();
+            // Check if the device is registered to someone other than the current user
+            const otherUser = Object.keys(usersWithDevice).find(uid => uid !== auth.currentUser?.uid);
+            if (otherUser) {
+                toast({
+                    variant: 'destructive',
+                    title: "Device Already Registered",
+                    description: "This device ID is already registered to another user.",
+                });
+                return; // Stop the process
+            }
+        }
+        // If snapshot doesn't exist or it only belongs to the current user, proceed to update.
+        updateDeviceIdInUserProfile(newDeviceId);
+    } catch (err: any) {
+        console.error("Error checking device ID:", err);
+        toast({
+            variant: 'destructive',
+            title: "Validation Error",
+            description: err.message || "Could not verify the device ID.",
+        });
+    }
   };
 
   const handleDisconnect = () => {
@@ -127,3 +166,5 @@ export function ControlPanel({ initialDeviceId }: ControlPanelProps) {
     </div>
   );
 }
+
+    
