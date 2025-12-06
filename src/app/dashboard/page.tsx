@@ -9,6 +9,7 @@ import { ref, get } from "firebase/database";
 import { ControlPanel } from "@/components/control-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface UserProfile {
     deviceId: string | null;
@@ -92,7 +93,12 @@ export default function DashboardPage() {
             <div className="w-full max-w-5xl">
                 <header className="flex justify-between items-center mb-8">
                     <h1 className="text-2xl font-bold text-primary">RiceCooker Pro-Max</h1>
-                    <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
+                    <div className="flex items-center gap-4">
+                        <Button asChild variant="link">
+                            <Link href="/management">Device Management</Link>
+                        </Button>
+                        <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
+                    </div>
                 </header>
                 <ControlPanel initialDeviceId={initialDeviceId} />
             </div>
