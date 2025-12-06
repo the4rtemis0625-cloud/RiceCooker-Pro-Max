@@ -1,9 +1,7 @@
+
 {
   "rules": {
     ".read": true,
-    ".write": true,
-    "users": {
-      ".indexOn": "deviceId"
-    }
+    ".write": true
   }
 }

@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface UserProfile {
-    deviceIds: Record<string, boolean> | null;
+    deviceIds?: Record<string, boolean>;
+    deviceId?: string; // For backward compatibility
 }
 
 export default function DashboardPage() {
@@ -55,7 +56,17 @@ export default function DashboardPage() {
     const unsubscribeProfile = onValue(userRef, (userSnap) => {
       if (userSnap.exists()) {
         const userProfile = userSnap.val() as UserProfile;
-        const fetchedDeviceIds = userProfile.deviceIds ? Object.keys(userProfile.deviceIds) : [];
+        
+        let fetchedDeviceIds: string[] = [];
+        // Check for the new multi-device format first
+        if (userProfile.deviceIds && typeof userProfile.deviceIds === 'object') {
+            fetchedDeviceIds = Object.keys(userProfile.deviceIds);
+        } 
+        // Fallback to the old single-device format
+        else if (userProfile.deviceId && typeof userProfile.deviceId === 'string') {
+            fetchedDeviceIds = [userProfile.deviceId];
+        }
+
         setDeviceIds(fetchedDeviceIds);
 
         if (fetchedDeviceIds.length > 0) {

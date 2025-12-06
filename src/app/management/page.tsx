@@ -89,13 +89,25 @@ export default function ManagementPage() {
 
     setLoading(true);
     
-    const userProfileRef = ref(database, `users/${user.uid}/deviceIds`);
+    const userProfileRef = ref(database, `users/${user.uid}`);
     const unsubscribeProfile = onValue(userProfileRef, async (snapshot) => {
       if (snapshot.exists()) {
-        const deviceIds = Object.keys(snapshot.val());
-        const devicePromises = deviceIds.map(id => fetchDeviceData(id));
-        const deviceList = await Promise.all(devicePromises);
-        setDevices(deviceList);
+        const userProfile = snapshot.val() as any;
+        let deviceIdList: string[] = [];
+
+        if (userProfile.deviceIds && typeof userProfile.deviceIds === 'object') {
+            deviceIdList = Object.keys(userProfile.deviceIds);
+        } else if (userProfile.deviceId && typeof userProfile.deviceId === 'string') {
+            deviceIdList = [userProfile.deviceId];
+        }
+
+        if (deviceIdList.length > 0) {
+            const devicePromises = deviceIdList.map(id => fetchDeviceData(id));
+            const deviceListResult = await Promise.all(devicePromises);
+            setDevices(deviceListResult);
+        } else {
+            setDevices([]);
+        }
       } else {
         setDevices([]);
       }
